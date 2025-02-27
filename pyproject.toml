@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "anythingllm-file-and-folder-backend"
+version = "0.1.0"
+description = ""
+authors = ["Ron Metzger <ron.metzger@korn-recycling.de>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+django = "^5.1.6"
+djangorestframework = "^3.15.2"
+python-dotenv = "^1.0.1"
+django-extensions = "^3.2.3"
+croniter = "^6.0.0"
+setuptools = "^75.8.2"
+django-q2 = "^1.7.6"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

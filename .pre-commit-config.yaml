@@ -1,0 +1,51 @@
+repos:
+-   repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+    -   id: black
+        language_version: python3.12
+
+-   repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+    -   id: flake8
+        additional_dependencies: [mccabe==0.7.0]
+
+-   repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+    -   id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+    -   id: trailing-whitespace  # Entfernt Leerzeichen am Zeilenende
+    -   id: end-of-file-fixer   # Stellt sicher, dass Dateien mit einer Newline enden
+    -   id: check-yaml          # Validiert YAML-Dateien
+    -   id: check-json          # Validiert JSON-Dateien
+    -   id: check-added-large-files  # Verhindert das Committen großer Dateien
+        args: ['--maxkb=500']
+    -   id: check-merge-conflict    # Prüft auf Merge-Konflikt-Markierungen
+    -   id: debug-statements    # Findet vergessene Debugging-Statements (z.B. pdb, ipdb)
+    -   id: check-case-conflict  # Prüft auf Dateien, die in case-insensitiven Systemen kollidieren würden
+
+-   repo: https://github.com/pycqa/bandit
+    rev: 1.7.7
+    hooks:
+    -   id: bandit  # Sicherheits-Linter für Python-Code
+        args: ['-ll']  # Low Level für detailliertere Überprüfung
+        exclude: '^tests/'
+
+-   repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+    -   id: isort   # Sortiert Python Imports
+        args: ['--profile', 'black']  # Kompatibilität mit Black
+
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v3.15.1
+    hooks:
+    -   id: pyupgrade  # Upgrade Python-Syntax für neuere Versionen
+        args: [--py312-plus]  # Nutzt Python 3.12+ Features

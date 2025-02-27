@@ -1,0 +1,33 @@
+services:
+  web:
+    build:
+      context: .
+    container_name: django_backend
+    image: django_backend
+    volumes:
+      - static_volume:/app/static
+      - storage_volume:/app/storage
+      - database_volume:/app/database
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=main.settings
+      - PYTHONPATH=/app
+      - DATABASE_DIR=/app/database
+      - STORAGE_DIR=/app/storage
+      - PORT=8010
+    ports:
+      - "8010:8010"
+    tty: true
+    stdin_open: true
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  static_volume:
+  storage_volume:
+  database_volume:
