@@ -1,12 +1,15 @@
-import os
-import socket
-
-import paramiko
-import requests
-from dotenv import load_dotenv
-
-from .models import links_to_check, page_error
+from .models import TaskError
 
 
 def check_all_servers():
-    pass
+    """
+    Placeholder function that will be called by the scheduler.
+    You can implement your specific logic here.
+    """
+    try:
+        # Your task logic here
+        print("Task executed successfully")
+        TaskError.objects.create(success=True, error=None)
+    except Exception as e:
+        print(f"Error in task execution: {e}")
+        TaskError.objects.create(success=False, error=str(e))

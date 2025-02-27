@@ -3,14 +3,14 @@ from django_q.models import Schedule
 
 def setup_schedules():
     # Lösche eventuell vorhandene Schedules mit dem gleichen Namen
-    Schedule.objects.filter(name="check_servers_workdays").delete()
+    Schedule.objects.filter(name="check_files_schedule").delete()
 
     # Erstelle einen neuen Schedule
     Schedule.objects.create(
-        name="check_servers_workdays",
-        func="pingLinks.tasks.check_all_servers",
+        name="check_files_schedule",
+        func="check_for_files.tasks.check_all_servers",  # Angepasst an die neue App
         schedule_type=Schedule.CRON,
-        # Führe alle 5 Minuten zwischen 9-17 Uhr an Arbeitstagen aus
-        cron="*/10 8-17 * * 1-5",  # Minute 0-59/5, Stunden 9-17, alle Tage, alle Monate, Wochentage 1-5 (Mo-Fr)
+        # Führe alle 15 Minuten aus
+        cron="*/15 * * * *",  # Alle 15 Minuten, 24/7
         repeats=-1,  # Unendlich wiederholen
     )
