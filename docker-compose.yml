@@ -2,12 +2,13 @@ services:
   web:
     build:
       context: .
-    container_name: django_backend
-    image: django_backend
+    container_name: any_folder
+    image: any_folder
     volumes:
       - static_volume:/app/static
       - storage_volume:/app/storage
       - database_volume:/app/database
+      - C:\Users\Ron.Metzger\Documents\!!testing_files:/app/KornIntelligenz
     env_file:
       - .env
     environment:

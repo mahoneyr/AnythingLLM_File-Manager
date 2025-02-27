@@ -26,11 +26,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.getenv('DJANGO-SECRET_KEY')
+SECRET_KEY = "django-insecure-w&gj(6#k3lua77sm=x2^85jjr0w+_r!wste*q0^(!au=9=*t_c"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 
 
 INSTALLED_APPS = [
