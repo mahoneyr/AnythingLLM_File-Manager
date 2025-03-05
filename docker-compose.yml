@@ -17,6 +17,14 @@ services:
       - DATABASE_DIR=/app/database
       - STORAGE_DIR=/app/storage
       - PORT=8010
+      - ANYTHING_LLM_API=YOUR-ANYTHINGLLM-DEV-API-KEY
+      - ANYTHING_LLM_URL=YOUR-ANYTHINGLLM-URL
+      - CHECK_FILES_CRON=*/1 * * * *  # Run every minute, can be changed as needed
+        #cron examples:
+      # - `*/5 * * * *` (every 5 Minutes)
+      # - `0 * * * *` (every hour)
+      # - `0 */2 * * *` (every 2 hours)
+      # - `0 9-17 * * 1-5` (every hour between 9-17 o clock, monday-friday)
     ports:
       - "8010:8010"
     tty: true

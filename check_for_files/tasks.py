@@ -7,10 +7,16 @@ from django.utils import timezone
 
 from .models import FileInfo, TaskError, created_workspaces
 
-# host_folder = "/app/KornIntelligenz"
-host_folder = "C:/Users/Ron.Metzger/Documents/!!testing_files"
-AnythingLLM_api = "0FT7FNZ-GGJMCV3-Q28DBE2-ZGZ07BP"
-main_url = "http://192.168.80.35:3003"
+host_folder = "/app/AnythingLLM"
+
+# Get AnythingLLM API key and URL from environment variables
+AnythingLLM_api = os.environ.get("ANYTHING_LLM_API")
+if not AnythingLLM_api:
+    raise ValueError("ANYTHING_LLM_API environment variable is not set")
+
+main_url = os.environ.get("ANYTHING_LLM_URL")
+if not main_url:
+    raise ValueError("ANYTHING_LLM_URL environment variable is not set")
 get_workspaces_url = "/api/v1/workspaces"
 get_documents_url = "/api/v1/documents"
 delete_documents_url = "/api/v1/system/remove-documents"
