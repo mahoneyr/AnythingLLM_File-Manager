@@ -11,6 +11,6 @@ def setup_schedules():
         func="check_for_files.tasks.check_all_servers",  # Angepasst an die neue App
         schedule_type=Schedule.CRON,
         # Führe alle 15 Minuten aus
-        cron="*/60 * * * *",  # Alle 15 Minuten, 24/7
+        cron="*/1 * * * *",  # Alle 15 Minuten, 24/7
         repeats=-1,  # Unendlich wiederholen
     )

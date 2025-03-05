@@ -1,7 +1,7 @@
 from django.contrib import admin
 
-from .models import TaskError
+from .models import FileInfo, TaskError
 
 # Register your models here.
 admin.site.register(TaskError)
-# admin.site.register(page_error)
+admin.site.register(FileInfo)

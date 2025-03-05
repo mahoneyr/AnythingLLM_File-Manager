@@ -12,3 +12,15 @@ class TaskError(models.Model):
         return (
             f"Task execution at {self.date} - {'Success' if self.success else 'Failed'}"
         )
+
+
+class FileInfo(models.Model):
+    filename = models.CharField(max_length=255)
+    absolute_path = models.CharField(max_length=1024)
+    main_folder = models.CharField(max_length=255)
+    file_size = models.PositiveIntegerField(help_text="Size in bytes")
+    created_at = models.DateTimeField()
+    modified_at = models.DateTimeField()
+
+    def __str__(self):
+        return self.filename

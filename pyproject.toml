@@ -15,6 +15,7 @@ croniter = "^6.0.0"
 setuptools = "^75.8.2"
 django-q2 = "^1.7.6"
 django-cors-headers = "^4.7.0"
+requests = "^2.32.3"
 
 
 [build-system]
