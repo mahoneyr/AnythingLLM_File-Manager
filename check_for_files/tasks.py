@@ -62,6 +62,7 @@ def check_all_servers():
         print("updating embeddings with ", update_embeddings)
         update_workspace_embeddings(update_embeddings)
 
+        time.sleep(3)
         print("deleting unused workspaces")
         delete_unused_workspaces()
 
@@ -76,24 +77,20 @@ def check_all_servers():
 def list_files(directory):
     try:
         files = os.listdir(directory)
-        # print("Dateien im Verzeichnis:")
-        for file in files:
-            # print(file)
-            pass
         return files
     except Exception as e:
-        print(f"Fehler beim Zugriff auf das Verzeichnis: {e}")
+        print(f"Error when reading files: {e}")
 
 
 def check_subfolder(directory, main_folder, first_run):
-    # print(f"new subfolder check: {directory}, {main_folder}, {first_run}")
+
     files = list_files(directory)
     for file in files:
-        # print("checking ", file)
+
         file_path = os.path.join(directory, file)
         isdir = os.path.isdir(file_path)
         if isdir:
-            # print(f"{file_path} is a folder")
+
             check_subfolder(file_path, file, False)
             pass
         elif first_run:
@@ -136,7 +133,7 @@ def check_for_files_still_exist():
     all_files = FileInfo.objects.all()
     for file in all_files:
         if not os.path.exists(file.absolute_path):
-            # print(f"File {file.filename} does not exist anymore.")
+            # if file doesnt exist anymore
             files_got_deleted.append(
                 [file.absolute_path, file.main_folder, file.filename]
             )
@@ -196,57 +193,59 @@ def add_files_to_anythingLLM(files_to_add):
 
 
 def delete_files_from_anythingLLM(array_to_delete):
+    # Convert array format for AnythingLLM comparison
+    files_to_delete = [[file[2], file[1]] for file in array_to_delete]
 
-    new_array = []
-    for object in array_to_delete:
-        new_array.append([object[2], object[1]])
-    new_array_to_delete = new_array
+    try:
+        # Get all documents from AnythingLLM
+        response = requests.get(
+            main_url + get_documents_url, headers=headers_json, timeout=10
+        )
+        response.raise_for_status()
+        local_files = response.json()["localFiles"]
+        folders = local_files["items"]
 
-    response = requests.get(
-        main_url + get_documents_url, headers=headers_json, timeout=10
-    )
-    local_files = response.json()["localFiles"]
-    folders = local_files["items"]
-    list_for_anythingLLM_request_deletion = []
-    for folder in folders:
-        all_docs = folder["items"]
-        folder_name = folder["name"]
-        for doc in all_docs:
-            doc_title = doc["title"]
-            doc_name = doc["name"]
-            if [doc_title, folder_name] in new_array_to_delete:
+        # Build list of files to delete from AnythingLLM
+        paths_to_delete = []
+        for folder in folders:
+            folder_name = folder["name"]
+            for doc in folder["items"]:
+                if [doc["title"], folder_name] in files_to_delete:
+                    doc_path = f"{folder_name}/{doc['name']}"
+                    paths_to_delete.append(doc_path)
 
-                doc_path_in_llm = f"{folder_name}/{doc_name}"
-                list_for_anythingLLM_request_deletion.append(doc_path_in_llm)
+        # Delete from AnythingLLM if we found any files
+        if paths_to_delete:
+            response = requests.delete(
+                main_url + delete_documents_url,
+                headers=headers_json,
+                json={"names": paths_to_delete},
+                timeout=10,
+            )
+            response.raise_for_status()
 
-    delete_json = {"names": list_for_anythingLLM_request_deletion}
-    requests.delete(
-        main_url + delete_documents_url,
-        headers=headers_json,
-        json=delete_json,
-        timeout=10,
-    )
-    print("done deleting from anythingLLM")
+        # Delete from database
+        for file in array_to_delete:
+            FileInfo.objects.filter(filename=file[2], absolute_path=file[0]).delete()
 
-    # [file_path, main_folder_name, file_name]
-
-    all = FileInfo.objects.all()
-    for one in all:
-        print(one.filename, one.absolute_path)
-
-    print("starting to delete from db")
-    for file in array_to_delete:
-        print(file[2], file[0])
-        file_in_db = FileInfo.objects.filter(
-            filename=file[2], absolute_path=file[0]
-        ).first()
-        if file_in_db is not None:
-            file_in_db.delete()
-    print("done deleting from db")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error communicating with AnythingLLM: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Error in delete_files_from_anythingLLM: {str(e)}")
 
 
 def update_files_in_anythingLLM(files_that_changed):
+    # First, remove ALL existing entries for these files from DB
+    for file in files_that_changed:
+        filename = file[2]
+        filepath = file[0]
+        # Delete all entries with this filename and path
+        FileInfo.objects.filter(filename=filename, absolute_path=filepath).delete()
+
+    # Then delete from AnythingLLM
     delete_files_from_anythingLLM(files_that_changed)
+
+    # Finally add the new versions
     add_files_to_anythingLLM(files_that_changed)
 
 
@@ -258,7 +257,9 @@ def update_workspace_embeddings(list_of_new_embeddings):
         if workspace_name not in checked_workspaces:  # check or create workspace
             checked_workspaces.append(workspace_name)
             response = requests.get(
-                url=main_url + get_workspace_url + str.lower(workspace_name),
+                url=main_url
+                + get_workspace_url
+                + str.lower(workspace_name).replace(" ", ""),
                 headers=headers_json,
                 timeout=10,
             )
@@ -295,7 +296,10 @@ def update_workspace_embeddings(list_of_new_embeddings):
         json_to_send = {"adds": val, "deletes": []}
         print(json_to_send)
         requests.post(
-            url=main_url + get_workspace_url + key + update_embeddings_url,
+            url=main_url
+            + get_workspace_url
+            + key.replace(" ", "")
+            + update_embeddings_url,
             headers=headers_json,
             json=json_to_send,
             timeout=10,
@@ -305,9 +309,10 @@ def update_workspace_embeddings(list_of_new_embeddings):
 def delete_unused_workspaces():
     all_created_workspaces = created_workspaces.objects.all()
     for workspace in all_created_workspaces:
-        print("will delete ", workspace.name)
         response = requests.get(
-            url=main_url + get_workspace_url + str.lower(workspace.name),
+            url=main_url
+            + get_workspace_url
+            + str.lower(workspace.name).replace(" ", ""),
             headers=headers_json,
             timeout=10,
         )
@@ -318,7 +323,9 @@ def delete_unused_workspaces():
             print(this_workspace["documents"])
             if len(this_workspace["documents"]) == 0:
                 response = requests.delete(
-                    url=main_url + get_workspace_url + str.lower(workspace.name),
+                    url=main_url
+                    + get_workspace_url
+                    + str.lower(workspace.name).replace(" ", ""),
                     headers=headers_json,
                     timeout=10,
                 )
@@ -327,12 +334,18 @@ def delete_unused_workspaces():
 
 
 def saveFile(file_path, main_folder):
+    # First ensure any existing entries are removed
+    FileInfo.objects.filter(
+        filename=os.path.basename(file_path), absolute_path=os.path.abspath(file_path)
+    ).delete()
+
+    # Now create the new entry
     creation_time = os.path.getctime(file_path)
     modification_time = os.path.getmtime(file_path)
     found_created_at = timezone.make_aware(datetime.fromtimestamp(creation_time))
     found_modified_at = timezone.make_aware(datetime.fromtimestamp(modification_time))
 
-    a = FileInfo.objects.create(
+    return FileInfo.objects.create(
         filename=os.path.basename(file_path),
         absolute_path=os.path.abspath(file_path),
         main_folder=main_folder,
@@ -340,5 +353,3 @@ def saveFile(file_path, main_folder):
         created_at=found_created_at,
         modified_at=found_modified_at,
     )
-
-    print("saved: ", a.created_at)
