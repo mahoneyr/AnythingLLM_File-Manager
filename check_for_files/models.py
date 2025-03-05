@@ -24,3 +24,7 @@ class FileInfo(models.Model):
 
     def __str__(self):
         return self.filename
+
+
+class created_workspaces(models.Model):
+    name = models.CharField(max_length=255)

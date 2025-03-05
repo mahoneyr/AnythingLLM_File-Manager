@@ -3,22 +3,27 @@ import time
 from datetime import datetime
 
 import requests
+from django.utils import timezone
 
-from .models import FileInfo, TaskError
+from .models import FileInfo, TaskError, created_workspaces
 
-host_folder = "/app/KornIntelligenz"
-# host_folder = "C:/Users/Ron.Metzger/Documents/!!testing_files"
+# host_folder = "/app/KornIntelligenz"
+host_folder = "C:/Users/Ron.Metzger/Documents/!!testing_files"
 AnythingLLM_api = "0FT7FNZ-GGJMCV3-Q28DBE2-ZGZ07BP"
 main_url = "http://192.168.80.35:3003"
 get_workspaces_url = "/api/v1/workspaces"
 get_documents_url = "/api/v1/documents"
 delete_documents_url = "/api/v1/system/remove-documents"
 post_document_add_url = "/api/v1/document/upload"
-create_folder = "/api/v1/document/create-folder"
-move_to_folder = "/api/v1/document/move-files"
-
+create_folder_url = "/api/v1/document/create-folder"
+move_to_folder_url = "/api/v1/document/move-files"
+get_workspace_url = "/api/v1/workspace/"
+update_embeddings_url = "/update-embeddings"
+new_workspace_url = "/api/v1/workspace/new"
 files_to_add = []
 files_that_changed = []
+
+update_embeddings = []  # [foldername,filename]
 
 headers_json = {
     "accept": "application/json",
@@ -53,6 +58,12 @@ def check_all_servers():
         print("updating files that have changed: ")
         update_files_in_anythingLLM(files_that_changed)
         print("after updating changed files we have: ", len(FileInfo.objects.all()))
+
+        print("updating embeddings with ", update_embeddings)
+        update_workspace_embeddings(update_embeddings)
+
+        print("deleting unused workspaces")
+        delete_unused_workspaces()
 
         print("Task executed successfully")
         TaskError.objects.create(success=True, error=None)
@@ -104,8 +115,12 @@ def check_subfolder(directory, main_folder, first_run):
                 modification_time = os.path.getmtime(file_path)
 
                 found_file_size = os.path.getsize(file_path)
-                found_created_at = datetime.fromtimestamp(creation_time)
-                found_modified_at = datetime.fromtimestamp(modification_time)
+                found_created_at = timezone.make_aware(
+                    datetime.fromtimestamp(creation_time)
+                )
+                found_modified_at = timezone.make_aware(
+                    datetime.fromtimestamp(modification_time)
+                )
                 if (
                     file_in_db.file_size != found_file_size
                     or file_in_db.created_at < found_created_at
@@ -113,7 +128,7 @@ def check_subfolder(directory, main_folder, first_run):
                 ):
                     # if file has clearly changed:
                     files_that_changed.append([file_path, main_folder, file_name])
-                    # print(f"File {file_name} has changed.")
+                    print(f"File {file_name} has changed.")
 
 
 def check_for_files_still_exist():
@@ -156,7 +171,7 @@ def add_files_to_anythingLLM(files_to_add):
             location = doc_info[0]["location"]
             # print(f"location is {location}")
             response = requests.post(
-                main_url + create_folder,
+                main_url + create_folder_url,
                 headers=headers_json,
                 json={"name": folder_name},
                 timeout=10,
@@ -168,7 +183,7 @@ def add_files_to_anythingLLM(files_to_add):
             }
             # print(only_file_name)
             response = requests.post(
-                main_url + move_to_folder,
+                main_url + move_to_folder_url,
                 headers=headers_json,
                 json=change_folder_json,
                 timeout=10,
@@ -177,24 +192,19 @@ def add_files_to_anythingLLM(files_to_add):
             if response.status_code == 200:
                 # Save the file info to our database if upload was successful
                 saveFile(file_path, folder_name)
+                update_embeddings.append([folder_name, only_file_name])
 
 
 def delete_files_from_anythingLLM(array_to_delete):
 
-    # ------------------------
-    # debugging:
-    #
     new_array = []
     for object in array_to_delete:
         new_array.append([object[2], object[1]])
     new_array_to_delete = new_array
-    # --------------------------
-    # print("---------------------")
-    # print("start deleting")
+
     response = requests.get(
         main_url + get_documents_url, headers=headers_json, timeout=10
     )
-    # print("files found: ", response.json())
     local_files = response.json()["localFiles"]
     folders = local_files["items"]
     list_for_anythingLLM_request_deletion = []
@@ -204,17 +214,12 @@ def delete_files_from_anythingLLM(array_to_delete):
         for doc in all_docs:
             doc_title = doc["title"]
             doc_name = doc["name"]
-            # print( "this is used for my check: " , [doc_title, folder_name])
             if [doc_title, folder_name] in new_array_to_delete:
 
                 doc_path_in_llm = f"{folder_name}/{doc_name}"
-                # print(doc_path_in_llm, " is the pat")
                 list_for_anythingLLM_request_deletion.append(doc_path_in_llm)
-                # print(f"deleted {doc_title}, {doc_name} from anythingLLM ")
 
-    # print("list to delete is:", list_for_anythingLLM_request_deletion)
     delete_json = {"names": list_for_anythingLLM_request_deletion}
-    # print(delete_json)
     requests.delete(
         main_url + delete_documents_url,
         headers=headers_json,
@@ -235,7 +240,8 @@ def delete_files_from_anythingLLM(array_to_delete):
         file_in_db = FileInfo.objects.filter(
             filename=file[2], absolute_path=file[0]
         ).first()
-        file_in_db.delete()
+        if file_in_db is not None:
+            file_in_db.delete()
     print("done deleting from db")
 
 
@@ -244,13 +250,87 @@ def update_files_in_anythingLLM(files_that_changed):
     add_files_to_anythingLLM(files_that_changed)
 
 
-def saveFile(
-    file_path, main_folder
-):  # TODO (data) -> and actually save it, add main_folder
+def update_workspace_embeddings(list_of_new_embeddings):
+    checked_workspaces = []
+    workspaces_to_update = {}
+    for new_workspace in list_of_new_embeddings:
+        workspace_name = new_workspace[0]  # name
+        if workspace_name not in checked_workspaces:  # check or create workspace
+            checked_workspaces.append(workspace_name)
+            response = requests.get(
+                url=main_url + get_workspace_url + str.lower(workspace_name),
+                headers=headers_json,
+                timeout=10,
+            )
+            if len(response.json()["workspace"]) == 0:
+                print("does not exist")
+                new_workspace_json = {
+                    "name": workspace_name,
+                    "similarityThreshold": 0.25,
+                    "openAiTemp": 0.7,
+                    "openAiHistory": 20,
+                    "openAiPrompt": "Given the following conversation, relevant context, and a follow up question, reply with an answer to the current question the user is asking. Return only your response to the question given the above information following the users instructions as needed.",
+                    "queryRefusalResponse": "There is no relevant information in this workspace to answer your query.",
+                    "chatMode": "chat",
+                    "topN": 4,
+                }
+                print("adding workspace to DB")
+                created_workspaces.objects.create(name=workspace_name)
+                print(f"now have {len(created_workspaces.objects.all())} workspaces")
+                response = requests.post(
+                    url=main_url + new_workspace_url,
+                    headers=headers_json,
+                    json=new_workspace_json,
+                    timeout=10,
+                )
+                print(response.json())
+
+        file_name = new_workspace[1]
+        if workspace_name in workspaces_to_update:
+            workspaces_to_update[workspace_name].append(f"{workspace_name}/{file_name}")
+        else:
+            workspaces_to_update[workspace_name] = [f"{workspace_name}/{file_name}"]
+
+    for key, val in workspaces_to_update.items():
+        json_to_send = {"adds": val, "deletes": []}
+        print(json_to_send)
+        requests.post(
+            url=main_url + get_workspace_url + key + update_embeddings_url,
+            headers=headers_json,
+            json=json_to_send,
+            timeout=10,
+        )
+
+
+def delete_unused_workspaces():
+    all_created_workspaces = created_workspaces.objects.all()
+    for workspace in all_created_workspaces:
+        print("will delete ", workspace.name)
+        response = requests.get(
+            url=main_url + get_workspace_url + str.lower(workspace.name),
+            headers=headers_json,
+            timeout=10,
+        )
+        workspace_data = response.json()["workspace"]
+        print("tis is workspace data:", workspace_data)
+        if len(workspace_data) != 0:
+            this_workspace = workspace_data[0]
+            print(this_workspace["documents"])
+            if len(this_workspace["documents"]) == 0:
+                response = requests.delete(
+                    url=main_url + get_workspace_url + str.lower(workspace.name),
+                    headers=headers_json,
+                    timeout=10,
+                )
+                print("deleted ", workspace.name)
+                workspace.delete()
+
+
+def saveFile(file_path, main_folder):
     creation_time = os.path.getctime(file_path)
     modification_time = os.path.getmtime(file_path)
-    found_created_at = datetime.fromtimestamp(creation_time)
-    found_modified_at = datetime.fromtimestamp(modification_time)
+    found_created_at = timezone.make_aware(datetime.fromtimestamp(creation_time))
+    found_modified_at = timezone.make_aware(datetime.fromtimestamp(modification_time))
 
     a = FileInfo.objects.create(
         filename=os.path.basename(file_path),
