@@ -13,7 +13,7 @@ def setup_schedules():
     # Erstelle einen neuen Schedule
     Schedule.objects.create(
         name="check_files_schedule",
-        func="check_for_files.tasks.check_all_servers",
+        func="check_for_files.tasks.anythingLLM_update",
         schedule_type=Schedule.CRON,
         cron=cron_schedule,  # Use environment variable
         repeats=-1,  # Unendlich wiederholen

@@ -8,7 +8,7 @@ services:
       - static_volume:/app/static
       - storage_volume:/app/storage
       - database_volume:/app/database
-      - C:\Users\Ron.Metzger\Documents\!!testing_files:/app/KornIntelligenz
+      - C:\YOUR_PATH:/app/AnythingLLM
     env_file:
       - .env
     environment:
@@ -17,14 +17,17 @@ services:
       - DATABASE_DIR=/app/database
       - STORAGE_DIR=/app/storage
       - PORT=8010
-      - ANYTHING_LLM_API=YOUR-ANYTHINGLLM-DEV-API-KEY
-      - ANYTHING_LLM_URL=YOUR-ANYTHINGLLM-URL
+      - ANYTHING_LLM_API=YOUR DEV API KEY  #You can find it here: AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key
+      - ANYTHING_LLM_URL=http://localhost:8010   #This is your URL to your AnythingLLM Instance (can be desktop or docker version)
+      #You can get the URL using Developer API Window -> click on "Read the API documentation" -> URL could be http://192.168.80.35:3001/api/docs/ -> then use http://192.168.80.35:3001 with no "/" at the end
+
+
       - CHECK_FILES_CRON=*/1 * * * *  # Run every minute, can be changed as needed
-        #cron examples:
-      # - `*/5 * * * *` (every 5 Minutes)
-      # - `0 * * * *` (every hour)
-      # - `0 */2 * * *` (every 2 hours)
-      # - `0 9-17 * * 1-5` (every hour between 9-17 o clock, monday-friday)
+      #cron examples:
+        # - `*/5 * * * *` (every 5 Minutes)
+        # - `0 * * * *` (every hour)
+        # - `0 */2 * * *` (every 2 hours)
+        # - `0 9-17 * * 1-5` (every hour between 9-17 o clock, monday-friday)
     ports:
       - "8010:8010"
     tty: true

@@ -1,35 +1,36 @@
-# AnythingLLM File Management Backend
+# AnythingLLM File Management Backend 🚀
 
 A Django-based backend service that automatically manages file synchronization between a local directory and AnythingLLM. This service monitors file changes, handles uploads, updates, and deletions, while managing workspaces in AnythingLLM.
 
-## Features
+## Features ✨
 
-- **Automated File Monitoring**: Continuously monitors a specified directory for:
-  - New files
-  - Modified files
-  - Deleted files
-- **AnythingLLM Integration**:
-  - Automatic file upload to AnythingLLM
-  - File updates when content changes
-  - Removal of deleted files
-  - Workspace management (creation and cleanup)
-- **Smart Workspace Management**:
-  - Automatic workspace creation based on folder structure
-  - Cleanup of empty workspaces
-  - Embedding updates for modified content
-- **Configurable Scheduling**:
-  - Customizable monitoring frequency via CRON configuration
-  - Default checking interval: every minute
+- **Automated File Monitoring** 📂: Continuously monitors a specified directory for:
+  - ✅ New files
+  - 🔄 Modified files
+  - 🗑️ Deleted files
+- **AnythingLLM Integration** 🔗:
+  - 📤 Automatic file upload to AnythingLLM
+  - 📝 File updates when content changes
+  - ❌ Removal of deleted files
+  - 🏢 Workspace management (creation and deletion)
+  - ⚠️ Only deleting workspaces created by this backend! No workspaces created via the AnythingLLM UI will be removed.
+- **Smart Workspace Management** 🏗️:
+  - 📁 Automatic workspace creation based on folder structure
+  - 🧹 Cleanup of empty workspaces (when created by this software)
+  - 🔄 Embedding updates for modified content
+- **Configurable Scheduling** ⏳:
+  - 🛠️ Customizable monitoring frequency via CRON configuration (set how often it looks for changes based on time)
+  - ⏰ Default checking interval: every minute
 
-## Prerequisites
+## Prerequisites 🛠️
 
-- Docker and Docker Compose
-- AnythingLLM instance
-- Access to AnythingLLM Developer API
+- 🐳 Docker and Docker Compose
+- 🧠 AnythingLLM instance (works with desktop and docker version)
+- 🔑 Access to AnythingLLM Developer API
 
-## Configuration
+## Configuration ⚙️
 
-### Environment Variables
+### Environment Variables 🌍
 
 Configure the service using the following environment variables in your `docker-compose.yml`:
 
@@ -40,121 +41,103 @@ environment:
   - CHECK_FILES_CRON=*/1 * * * *  # CRON schedule for file checking
 ```
 
-### Volume Configuration
+🔑 You can find the developer API Key here: **AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key**
+🌍 You can get the URL from the Developer API Window -> Click on **"Read the API documentation"** -> Example URL: `http://192.168.80.35:3001/api/docs/` -> Use `http://192.168.80.35:3001` without a trailing `/`
 
-Specify the directory to monitor in the `docker-compose.yml`:
+### Volume Configuration 📁
+
+Specify the directory to monitor in `docker-compose.yml`:
 
 ```yaml
 volumes:
-  - /your/local/path/:/app/AnythingLLM
+  - C:\YOUR_PATH:/app/AnythingLLM
 ```
 
-The program will go through every folder within the folder you set.
-Meaning, if set the folder to
-C:\MyAnythingLLM_folder\
-then the programm will check all folders and subfolders within this folder.
-For each folder within that path there will be a workspace and folder created in AnythingLLM. (As you can't create subfolders in AnythingLLM, those get ignored too).
+📂 The program will scan every folder within the specified path.
 
 Example:
-C:\MyAnythingLLM_folder\Homework
-C:\MyAnythingLLM_folder\Contracts
-C:\MyAnythingLLM_folder\ActualHomework
-Will create the Workspaces Homework, Contracts and ActualHomework.
+- `C:\MyAnythingLLM_folder\Homework`
+- `C:\MyAnythingLLM_folder\Contracts`
+- `C:\MyAnythingLLM_folder\ActualHomework`
 
-Those workspaces also get deleted when the local folders are deleted.
+Will create the Workspaces:
+- **Homework**
+- **Contracts**
+- **ActualHomework**
 
-## Installation and Setup
+🗑️ These workspaces also get deleted when the local folders are removed.
 
-1. Clone the repository:
+## Installation and Setup 🚀
+
+1. **Clone the repository**:
 ```bash
-git clone [repository-url]
+git clone https://github.com/MrMarans/AnythingLLM_File-Manager.git
 ```
 
-2. Configure your environment:
-   - Change the example docker-compose.yml
-   - Adjust the environment variables like developer API and AnythingLLM URL
-   - Set the correct volume mapping for your monitored directory
+2. **Configure your environment**:
+   - 🛠️ Modify `docker-compose.yml`
+   - 🔑 Adjust environment variables (API key, AnythingLLM URL, watched folder path)
+   - 📂 Set correct volume mapping for your monitored directory
 
-3. Start the service:
+3. **Start the service**:
 ```bash
 docker-compose up -d
 ```
 
-## Docker Compose Configuration
-
-Example configuration:
-
-```yaml
-services:
-  web:
-    build:
-      context: .
-    container_name: any_folder
-    image: any_folder
-    volumes:
-      - static_volume:/app/static
-      - storage_volume:/app/storage
-      - database_volume:/app/database
-      - /your/local/path:/app/AnythingLLM
-    environment:
-      - DJANGO_SETTINGS_MODULE=main.settings
-      - PYTHONPATH=/app
-      - DATABASE_DIR=/app/database
-      - STORAGE_DIR=/app/storage
-      - PORT=8010
-      - ANYTHING_LLM_API=your_api_key
-      - ANYTHING_LLM_URL=your_anything_llm_url
-      - CHECK_FILES_CRON=*/1 * * * *
+🆙 **Updating to a new version?** Use:
+```bash
+docker-compose down
+docker-compose up -d --build
 ```
 
-## How It Works
+## How It Works 🛠️
 
-1. **File Monitoring**:
-   - The service periodically checks the monitored directory based on the configured CRON schedule
-   - Detects new, modified, and deleted files
-   - Maintains a database of known files
+1. **File Monitoring** 🔍:
+   - Periodically checks the monitored directory based on the configured CRON schedule ⏳
+   - Detects **new, modified, and deleted** files ✅
+   - Maintains a database of detected files 🗃️
 
-2. **AnythingLLM Integration**:
-   - New files are automatically uploaded to AnythingLLM
-   - Modified files trigger updates in AnythingLLM
-   - Deleted files are removed from AnythingLLM
-   - Workspaces are created based on folder structure
+2. **AnythingLLM Integration** 🔗:
+   - 📤 New files are automatically uploaded
+   - 📝 Modified files trigger updates
+   - ❌ Deleted files are removed
+   - 🏢 Workspaces are created based on folder structure
 
-3. **Workspace Management**:
-   - Creates workspaces automatically for new folders
-   - Updates embeddings when files change
-   - Removes empty workspaces to maintain cleanliness
+3. **Workspace Management** 🏗️:
+   - 📁 Creates workspaces automatically for new folders
+   - 🔄 Updates embeddings when files change
+   - 🧹 Removes empty workspaces to maintain cleanliness
 
-## CRON Schedule Examples
+## CRON Schedule Examples ⏰
 
-You can modify the CHECK_FILES_CRON environment variable to adjust the checking frequency:
+You can modify the `CHECK_FILES_CRON` environment variable to adjust the checking frequency:
 
-- `*/1 * * * *` - Every minute (default)
-- `*/5 * * * *` - Every 5 minutes
-- `0 * * * *` - Every hour
-- `0 */2 * * *` - Every 2 hours
-- `0 9-17 * * 1-5` - Every hour between 9 AM and 5 PM, Monday to Friday
+- `*/1 * * * *` - 🔄 Every minute (default)
+- `*/5 * * * *` - ⏳ Every 5 minutes
+- `0 * * * *` - 🕒 Every hour
+- `0 */2 * * *` - ⏲️ Every 2 hours
+- `0 9-17 * * 1-5` - ⏰ Every hour between 9 AM and 5 PM, Monday to Friday
 
-## Troubleshooting
+## Troubleshooting 🛠️
 
 Common issues and their solutions:
 
-1. **Files not being detected**:
-   - Check the volume mounting in docker-compose.yml
-   - Verify file permissions
-   - Check the logs for any errors
+1. **Files not being detected** 🧐:
+   - 🔍 Check the volume mounting in `docker-compose.yml`
+   - 🔑 Verify file permissions
+   - 📝 Check the logs for any errors
 
-2. **AnythingLLM connection issues**:
-   - Verify the ANYTHING_LLM_URL is correct
-   - Ensure the ANYTHING_LLM_API key is valid
-   - Check network connectivity
+2. **AnythingLLM connection issues** 🔌:
+   - ✅ Verify `ANYTHING_LLM_URL` is correct
+   - 🔑 Ensure `ANYTHING_LLM_API` key is valid
+   - 🌍 Check network connectivity
 
-3. **Schedule not running**:
-   - Verify the CHECK_FILES_CRON format
-   - Check the container logs for scheduling errors
-   - Ensure the container has the correct timezone settings
+3. **Schedule not running** ⏳:
+   - ✅ Verify `CHECK_FILES_CRON` format
+   - 📜 Check container logs for scheduling errors
+   - 🌍 Ensure the container has the correct timezone settings
 
-## Logs
+## Logs 📜
 
 The service logs all operations and errors. Access the logs using:
 
@@ -162,19 +145,28 @@ The service logs all operations and errors. Access the logs using:
 docker-compose logs -f
 ```
 
-## Support
+## Support 🤝
 
-For issues, questions, or contributions, please:
-- Create an issue in the repository
-- Ensure logs and configuration details are included when reporting issues
+For issues, questions, or contributions:
+- 📝 Create an issue in the repository
+- 🛠️ Include logs and configuration details when reporting issues
 
-## Known Issues:
-- While we can create new Workspaces and delete them, we can only create new folders. So deleting folders needs to first be possible through the AnythingLLM API so I can add this feature.
+## Known Issues ⚠️
 
-## Upcoming changes:
-- Improving code
-- Adding option for a workspace.json file of some sort to set the settings of a workspace by changing the json.
+- ⚠️ While we can **create new Workspaces and delete them**, we can only **create new folders**.
+  - **Folder deletion is not yet supported** via the AnythingLLM API. This will be added once supported.
 
-## License
+## Upcoming Changes 🚀
+
+- 🛠️ Code improvements
+- 📜 Adding an option for a `workspace.json` file to configure workspace settings
+
+## Security Information 🔒
+
+⚠️ **No security testing has been conducted. Use at your own risk.** This has not been tested for production. Please review the `settings.py` file and adjust as needed.
+
+🔐 If you have security expertise, **pull requests with security improvements are welcome!**
+
+## License 📜
 
 MIT

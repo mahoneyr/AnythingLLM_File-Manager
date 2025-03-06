@@ -17,6 +17,9 @@ if not AnythingLLM_api:
 main_url = os.environ.get("ANYTHING_LLM_URL")
 if not main_url:
     raise ValueError("ANYTHING_LLM_URL environment variable is not set")
+
+
+# different urls parts for the API
 get_workspaces_url = "/api/v1/workspaces"
 get_documents_url = "/api/v1/documents"
 delete_documents_url = "/api/v1/system/remove-documents"
@@ -26,11 +29,13 @@ move_to_folder_url = "/api/v1/document/move-files"
 get_workspace_url = "/api/v1/workspace/"
 update_embeddings_url = "/update-embeddings"
 new_workspace_url = "/api/v1/workspace/new"
+
+
 files_to_add = []
 files_that_changed = []
-
 update_embeddings = []  # [foldername,filename]
 
+# header for all the get, post and delete requests which needs jsons.
 headers_json = {
     "accept": "application/json",
     "Authorization": f"Bearer {AnythingLLM_api}",
@@ -38,49 +43,45 @@ headers_json = {
 }
 
 
-# TODO new_folders_to_workspaces = []
-def check_all_servers():
+def anythingLLM_update():
     try:
-        print("Files in the SQL Database: ", len(FileInfo.objects.all()))
-
-        print("checking for deleted files")
         files_got_deleted = check_for_files_still_exist()
-        print(f"{len(files_got_deleted)} has been deleted")
 
-        print("checking all files")
         check_subfolder(host_folder, host_folder, True)
+
+        if (
+            len(files_got_deleted) == 0
+            and len(files_to_add) == 0
+            and len(files_that_changed) == 0
+        ):
+            print("Since no changes have been detected, nothing happens")
+            TaskError.objects.create(success=True, error="Early stop cause no changes")
+            return
+
         print(
-            f"found {len(files_to_add)} files to add and {len(files_that_changed)} files that changed:"
+            f"Found {len(files_to_add)} files to add, {len(files_that_changed)} files that changed and {len(files_got_deleted)} files that got deleted. Updating AnythingLLM now"
         )
 
-        print("adding files to anythingLLM")
         add_files_to_anythingLLM(files_to_add)
-        print("we now have so many db entries: ", len(FileInfo.objects.all()))
 
-        print("deleting files from anythingLLM")
         delete_files_from_anythingLLM(files_got_deleted)
-        print("after deletion we only have: ", len(FileInfo.objects.all()))
 
-        print("updating files that have changed: ")
         update_files_in_anythingLLM(files_that_changed)
-        print("after updating changed files we have: ", len(FileInfo.objects.all()))
 
-        print("updating embeddings with ", update_embeddings)
         update_workspace_embeddings(update_embeddings)
 
-        time.sleep(3)
-        print("deleting unused workspaces")
         delete_unused_workspaces()
 
-        print("Task executed successfully")
+        print("Done Updating, task was successful")
         TaskError.objects.create(success=True, error=None)
-        print(len(FileInfo.objects.all()))
+
     except Exception as e:
         print(f"Error in task execution: {e}")
         TaskError.objects.create(success=False, error=str(e))
 
 
 def list_files(directory):
+    # returning a list of all files within a path
     try:
         files = os.listdir(directory)
         return files
@@ -89,7 +90,15 @@ def list_files(directory):
 
 
 def check_subfolder(directory, main_folder, first_run):
-
+    # ----------------------------
+    # Checking each file and folder within the folder that was set within the docker-compose file.
+    # First run ignores files and just checks for folders.
+    # Every other run then checks for files and subfolders.
+    # If the file is new -> append it into an array of new files
+    # If the file has changed cause of size or creation date -> append to list of changed files.
+    # Deleted files will not get checked here, thats another function.
+    # We are also saving the main folder, so the first folder we entered. This is so we know to which workspace the file will belong
+    # ----------------------------
     files = list_files(directory)
     for file in files:
 
@@ -135,6 +144,9 @@ def check_subfolder(directory, main_folder, first_run):
 
 
 def check_for_files_still_exist():
+    # ----------------------------
+    # We go through each file in the DB and check if the file is still there
+    # ----------------------------
     files_got_deleted = []
     all_files = FileInfo.objects.all()
     for file in all_files:
@@ -148,6 +160,12 @@ def check_for_files_still_exist():
 
 
 def add_files_to_anythingLLM(files_to_add):
+    # -----------------------------
+    # This function sends files to AnythingLLM via the api.
+    # files_to_add has arrays of this structure: [file_path, main_folder, file_name]
+    # We are going through each file and send them one by one to AnythingLLM
+    # -----------------------------
+
     headers_files = {
         "accept": "application/json",
         "Authorization": f"Bearer {AnythingLLM_api}",
@@ -162,17 +180,19 @@ def add_files_to_anythingLLM(files_to_add):
                 "file": (os.path.basename(file_path), f, "application/octet-stream")
             }
 
-            # print(f"Uploading {file_path} to folder '{folder_name}'")
             response = requests.post(
                 main_url + post_document_add_url,
                 headers=headers_files,
                 files=files,
                 timeout=30,  # Increased timeout for file uploads
             )
-            # print(response.json())
+
             doc_info = response.json()["documents"]
-            location = doc_info[0]["location"]
-            # print(f"location is {location}")
+            location = doc_info[0][
+                "location"
+            ]  # saving information of where it was saved within anythingLLM
+
+            # create a folder with the same name as the base folder of the uploaded file
             response = requests.post(
                 main_url + create_folder_url,
                 headers=headers_json,
@@ -184,7 +204,8 @@ def add_files_to_anythingLLM(files_to_add):
             change_folder_json = {
                 "files": [{"from": location, "to": f"{folder_name}/{only_file_name}"}]
             }
-            # print(only_file_name)
+
+            # Request to move the file to new created folder
             response = requests.post(
                 main_url + move_to_folder_url,
                 headers=headers_json,
@@ -199,6 +220,12 @@ def add_files_to_anythingLLM(files_to_add):
 
 
 def delete_files_from_anythingLLM(array_to_delete):
+    # -----------------------------
+    # This function deletes files from AnythingLLM, because they either got changed or deleted.
+    # array_to_delete has arrays of this structure: [file_path, main_folder, file_name]
+    # We are going through each file and delete them one by one in AnythingLLM
+    # -----------------------------
+
     # Convert array format for AnythingLLM comparison
     files_to_delete = [[file[2], file[1]] for file in array_to_delete]
 
@@ -241,6 +268,11 @@ def delete_files_from_anythingLLM(array_to_delete):
 
 
 def update_files_in_anythingLLM(files_that_changed):
+    # -----------------------------
+    # We are checking the files that got changed, deleting them from our DB and from AnythingLLM, then reuploading them.
+    # files_that_changed has arrays of this structure: [file_path, main_folder, file_name]
+    # -----------------------------
+
     # First, remove ALL existing entries for these files from DB
     for file in files_that_changed:
         filename = file[2]
@@ -256,10 +288,16 @@ def update_files_in_anythingLLM(files_that_changed):
 
 
 def update_workspace_embeddings(list_of_new_embeddings):
+    # -----------------------------
+    # This function embeds the uploaded documents in the workspaces with 1 api call.
+    # list_of_new_embeddings has arrays of this structure: [folder_name, only_file_name]
+    # We go through every object and make a dict for each workspace that needs new embeddings.
+    # Then we make an API call for each workspace to update the embeddings.
+    # -----------------------------
     checked_workspaces = []
     workspaces_to_update = {}
     for new_workspace in list_of_new_embeddings:
-        workspace_name = new_workspace[0]  # name
+        workspace_name = new_workspace[0]
         if workspace_name not in checked_workspaces:  # check or create workspace
             checked_workspaces.append(workspace_name)
             response = requests.get(
@@ -270,7 +308,9 @@ def update_workspace_embeddings(list_of_new_embeddings):
                 timeout=10,
             )
             if len(response.json()["workspace"]) == 0:
-                print("does not exist")
+                print(
+                    f" {workspace_name} did not exist as a workspace, so we create one"
+                )
                 new_workspace_json = {
                     "name": workspace_name,
                     "similarityThreshold": 0.25,
@@ -281,17 +321,17 @@ def update_workspace_embeddings(list_of_new_embeddings):
                     "chatMode": "chat",
                     "topN": 4,
                 }
-                print("adding workspace to DB")
+
                 created_workspaces.objects.create(name=workspace_name)
-                print(f"now have {len(created_workspaces.objects.all())} workspaces")
+
                 response = requests.post(
                     url=main_url + new_workspace_url,
                     headers=headers_json,
                     json=new_workspace_json,
                     timeout=10,
                 )
-                print(response.json())
 
+        # now lets create the array which we will send to the API to update embeddings for the workspaces
         file_name = new_workspace[1]
         if workspace_name in workspaces_to_update:
             workspaces_to_update[workspace_name].append(f"{workspace_name}/{file_name}")
@@ -299,8 +339,11 @@ def update_workspace_embeddings(list_of_new_embeddings):
             workspaces_to_update[workspace_name] = [f"{workspace_name}/{file_name}"]
 
     for key, val in workspaces_to_update.items():
-        json_to_send = {"adds": val, "deletes": []}
-        print(json_to_send)
+        json_to_send = {
+            "adds": val,
+            "deletes": [],
+        }  # deletes is empty because we only delete files, which also deletes embeddings
+
         requests.post(
             url=main_url
             + get_workspace_url
@@ -313,6 +356,10 @@ def update_workspace_embeddings(list_of_new_embeddings):
 
 
 def delete_unused_workspaces():
+    # -----------------------------
+    # This function deletes workspaces with no documents embedded in them.
+    # But only those workspaces get deleted, if they were created by this program and are in the database.
+    # -----------------------------
     all_created_workspaces = created_workspaces.objects.all()
     for workspace in all_created_workspaces:
         response = requests.get(
@@ -323,10 +370,9 @@ def delete_unused_workspaces():
             timeout=10,
         )
         workspace_data = response.json()["workspace"]
-        print("tis is workspace data:", workspace_data)
+
         if len(workspace_data) != 0:
             this_workspace = workspace_data[0]
-            print(this_workspace["documents"])
             if len(this_workspace["documents"]) == 0:
                 response = requests.delete(
                     url=main_url
@@ -335,7 +381,6 @@ def delete_unused_workspaces():
                     headers=headers_json,
                     timeout=10,
                 )
-                print("deleted ", workspace.name)
                 workspace.delete()
 
 
