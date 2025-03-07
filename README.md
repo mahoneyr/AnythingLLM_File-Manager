@@ -122,6 +122,12 @@ You can modify the `CHECK_FILES_CRON` environment variable to adjust the checkin
 
 To deactivate CRON Scheduler, set `USE_CRON=false` in the `docker-compose.yml`
 
+
+## Update via API
+
+You can let the files manually update with a post request to the **ip:port/update_files/update/** endpoint.
+For most people it will be **http://localhost:8010/update_files/update/**
+
 ## Troubleshooting 🛠️
 
 Common issues and their solutions:
