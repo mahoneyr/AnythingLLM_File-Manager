@@ -21,7 +21,7 @@ services:
       - ANYTHING_LLM_URL=http://localhost:8010   #This is your URL to your AnythingLLM Instance (can be desktop or docker version)
       #You can get the URL using Developer API Window -> click on "Read the API documentation" -> URL could be http://192.168.80.35:3001/api/docs/ -> then use http://192.168.80.35:3001 with no "/" at the end
 
-
+      - USE_CRON=true #if true, then it updates based on timings. If false, you can only update via post request to localhost:PORT/update_files/update/
       - CHECK_FILES_CRON=*/1 * * * *  # Run every minute, can be changed as needed
       #cron examples:
         # - `*/5 * * * *` (every 5 Minutes)

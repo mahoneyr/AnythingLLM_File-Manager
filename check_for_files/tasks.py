@@ -56,7 +56,7 @@ def anythingLLM_update():
         ):
             print("Since no changes have been detected, nothing happens")
             TaskError.objects.create(success=True, error="Early stop cause no changes")
-            return
+            return "Nothing to update"
 
         print(
             f"Found {len(files_to_add)} files to add, {len(files_that_changed)} files that changed and {len(files_got_deleted)} files that got deleted. Updating AnythingLLM now"
@@ -69,8 +69,7 @@ def anythingLLM_update():
         update_files_in_anythingLLM(files_that_changed)
 
         # waiting for uploads
-        wait_time = len(files_to_add) + len(files_that_changed)
-        time.sleep(wait_time * 3)
+
         update_workspace_embeddings(update_embeddings)
         delete_unused_workspaces()
 
@@ -78,10 +77,12 @@ def anythingLLM_update():
             f"Done Updating, task was successful. {len(FileInfo.objects.all())} documents in DB"
         )
         TaskError.objects.create(success=True, error=None)
-
+        return f"Done Updating, task was successful. Found {len(files_to_add)} files to add, {len(files_that_changed)} files that changed and {len(files_got_deleted)} files that got deleted."
     except Exception as e:
-        print(f"Error in task execution: {e}")
+        output = f"Error in task execution: {e}"
+        print(output)
         TaskError.objects.create(success=False, error=str(e))
+        return output
 
 
 def list_files(directory):

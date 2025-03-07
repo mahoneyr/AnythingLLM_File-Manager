@@ -21,6 +21,7 @@ A Django-based backend service that automatically manages file synchronization b
 - **Configurable Scheduling** ⏳:
   - 🛠️ Customizable monitoring frequency via CRON configuration (set how often it looks for changes based on time)
   - ⏰ Default checking interval: every minute
+  - 📧 Custom updates with a post request to **/update_files/update/**
 
 ## Prerequisites 🛠️
 
@@ -38,6 +39,7 @@ Configure the service using the following environment variables in your `docker-
 environment:
   - ANYTHING_LLM_API=your_api_key
   - ANYTHING_LLM_URL=your_anything_llm_url
+  - USE_CRON = true #activates time based checks
   - CHECK_FILES_CRON=*/1 * * * *  # CRON schedule for file checking
 ```
 
@@ -84,7 +86,7 @@ git clone https://github.com/MrMarans/AnythingLLM_File-Manager.git
 docker-compose up -d
 ```
 
-🆙 **Updating to a new version?** Use:
+🆙 **Updating to a new version or updating the docker-compose file?** Use:
 ```bash
 docker-compose down
 docker-compose up -d --build
@@ -117,6 +119,8 @@ You can modify the `CHECK_FILES_CRON` environment variable to adjust the checkin
 - `0 * * * *` - 🕒 Every hour
 - `0 */2 * * *` - ⏲️ Every 2 hours
 - `0 9-17 * * 1-5` - ⏰ Every hour between 9 AM and 5 PM, Monday to Friday
+
+To deactivate CRON Scheduler, set `USE_CRON=false` in the `docker-compose.yml`
 
 ## Troubleshooting 🛠️
 

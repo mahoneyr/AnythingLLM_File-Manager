@@ -1,14 +1,14 @@
 import json
 import os
 
-from django.http import JsonResponse
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from dotenv import load_dotenv
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+from .tasks import anythingLLM_update
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-def execute_command(request):
-    pass
+@api_view(["POST"])
+def upload(request):
+    finished_text = anythingLLM_update()
+    return Response(finished_text, status=status.HTTP_200_OK)
