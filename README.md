@@ -39,7 +39,7 @@ Configure the service using the following environment variables in your `docker-
 environment:
   - ANYTHING_LLM_API=your_api_key
   - ANYTHING_LLM_URL=your_anything_llm_url
-  - USE_CRON = true #activates time based checks
+  - USE_CRON=true #activates time based checks
   - CHECK_FILES_CRON=*/1 * * * *  # CRON schedule for file checking
 ```
 
