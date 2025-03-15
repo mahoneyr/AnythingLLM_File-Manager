@@ -39,3 +39,5 @@ media/
 # Semgrep specific
 .semgrep/
 .semgrep_logs/
+
+docker-compose.yml

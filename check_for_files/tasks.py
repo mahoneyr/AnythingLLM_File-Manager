@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import datetime
-
+import time
 import requests
 from django.utils import timezone
 
@@ -362,13 +362,12 @@ def update_workspace_embeddings(list_of_new_embeddings):
                 )
             else:
                 workspaces_to_update[workspace_name] = [f"{workspace_name}/{file_name}"]
-
+        time.sleep(1)
         for key, val in workspaces_to_update.items():
             json_to_send = {
                 "adds": val,
                 "deletes": [],
             }  # deletes is empty because we only delete files, which also deletes embeddings
-
             requests.post(
                 url=main_url
                 + get_workspace_url

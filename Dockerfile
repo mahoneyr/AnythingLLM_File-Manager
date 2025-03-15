@@ -28,7 +28,7 @@ RUN poetry config virtualenvs.create false && \
 
 # Copy the rest of the application
 COPY . .
-COPY .env .env
+
 
 # Create required directories and set permissions
 RUN mkdir -p /app/storage/media/charts/uploads \
