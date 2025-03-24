@@ -4,10 +4,11 @@ from datetime import datetime
 import time
 import requests
 from django.utils import timezone
-
 from .models import FileInfo, TaskError, created_workspaces
+from .describe_images import image_to_description
 
-host_folder = "/app/AnythingLLM"
+host_folder = "Z:\Google Drive\AnythingLLM"
+describe_images = True
 
 # Get AnythingLLM API key and URL from environment variables
 AnythingLLM_api = os.environ.get("ANYTHING_LLM_API")
@@ -45,9 +46,15 @@ headers_json = {
 
 def anythingLLM_update():
     try:
+        global files_to_add, files_that_changed, files_got_deleted  # Deklariere die Variablen als global
+        
         files_got_deleted = check_for_files_still_exist()
-
         check_subfolder(host_folder, host_folder, True)
+
+        # Jetzt können Sie die globalen Variablen modifizieren
+        files_to_add = remove_duplicates(files_to_add)
+        files_got_deleted = remove_duplicates(files_got_deleted)
+        files_that_changed = remove_duplicates(files_that_changed)
 
         if (
             len(files_got_deleted) == 0
@@ -61,7 +68,6 @@ def anythingLLM_update():
         print(
             f"Found {len(files_to_add)} files to add, {len(files_that_changed)} files that changed and {len(files_got_deleted)} files that got deleted. Updating AnythingLLM now"
         )
-
         add_files_to_anythingLLM(files_to_add)
 
         delete_files_from_anythingLLM(files_got_deleted)
@@ -83,6 +89,15 @@ def anythingLLM_update():
         print(output)
         TaskError.objects.create(success=False, error=str(e))
         return output
+
+def remove_duplicates(list):
+    seen_files = set()
+    list = [
+            file_info for file_info in list
+            if tuple(file_info) not in seen_files and not seen_files.add(tuple(file_info))
+        ]
+    
+    return list
 
 
 def list_files(directory):
@@ -108,48 +123,77 @@ def check_subfolder(directory, main_folder, first_run):
     try:
         files = list_files(directory)
         for file in files:
-
             file_path = os.path.join(directory, file)
             isdir = os.path.isdir(file_path)
             if isdir:
-
                 check_subfolder(file_path, file, False)
                 pass
             elif first_run:
-                # we are ignoring the files in the base folder
                 break
             else:
                 file_name = os.path.basename(file_path)
                 absolute_path = os.path.abspath(file_path)
-                file_in_db = FileInfo.objects.filter(
-                    filename=file_name, absolute_path=absolute_path
-                ).first()
 
-                if file_in_db is None:
-                    files_to_add.append([file_path, main_folder, file_name])
-                    continue
-                else:  # file already exists in db
-                    # check if file has changed:
-                    creation_time = os.path.getctime(file_path)
-                    modification_time = os.path.getmtime(file_path)
+                if file_name.lower().endswith('.image_description'):
+                    continue                 
+                # Check if the file is an image
+                image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
+                is_image = file_name.lower().endswith(image_extensions)
 
-                    found_file_size = os.path.getsize(file_path)
-                    found_created_at = timezone.make_aware(
-                        datetime.fromtimestamp(creation_time)
-                    )
-                    found_modified_at = timezone.make_aware(
-                        datetime.fromtimestamp(modification_time)
-                    )
-                    if (
-                        file_in_db.file_size != found_file_size
-                        or file_in_db.created_at < found_created_at
-                        or file_in_db.modified_at < found_modified_at
-                    ):
-                        # if file has clearly changed:
-                        files_that_changed.append([file_path, main_folder, file_name])
-                        print(f"File {file_name} has changed.")
+                if is_image and describe_images:
+                    description_path = image_to_description(absolute_path)
+                    print(f"Image description path: {description_path}")
+                    is_descriptive_file = True
+                    # files_to_add.append([description_path, main_folder, os.path.basename(description_path)])
+                    print("file path: ", absolute_path)
+                else:
+                    file_in_db = Is_File_In_DB(file_name, absolute_path)
+                    if is_descriptive_file:
+                    file_path = description_path
+                    file_name = os.path.basename(file_path)
+                    
+                    if not file_in_db:  # Wenn die Datei NICHT in der DB ist
+                        files_to_add.append([file_path, main_folder, file_name])
+                    else:  # Wenn die Datei in der DB ist
+                        if File_Changed(file_in_db, file_path):
+                            files_that_changed.append([file_path, main_folder, file_name])
+                            print(f"File {file_name} has changed.")
+                
+                            
     except Exception as e:
         print(f"Error parsing {directory}: {str(e)} ")
+
+def Is_File_In_DB(file_name, absolute_path):
+    try:
+        return FileInfo.objects.filter(
+            filename=file_name, 
+            absolute_path=absolute_path
+        ).first()
+    except Exception as e:
+        print(f"Error checking file in DB: {str(e)}")
+        return None
+
+def File_Changed(file_in_db, file_path):
+    try:
+        creation_time = os.path.getctime(file_path)
+        modification_time = os.path.getmtime(file_path)
+
+        found_file_size = os.path.getsize(file_path)
+        found_created_at = timezone.make_aware(
+            datetime.fromtimestamp(creation_time)
+        )
+        found_modified_at = timezone.make_aware(
+            datetime.fromtimestamp(modification_time)
+        )
+        
+        return (
+            file_in_db.file_size != found_file_size
+            or file_in_db.created_at < found_created_at
+            or file_in_db.modified_at < found_modified_at
+        )
+    except Exception as e:
+        print(f"Error checking if file changed: {str(e)}")
+        return False
 
 
 def check_for_files_still_exist():
@@ -189,12 +233,17 @@ def add_files_to_anythingLLM(files_to_add):
             file_path = file[0]
             folder_name = file[1]
 
+            # Prüfe ob die Datei noch existiert
+            if not os.path.exists(file_path):
+                print(f"Skipping file {file_path} as it no longer exists")
+                continue
+
             # Open and prepare the file for upload
             with open(file_path, "rb") as f:
                 files = {
                     "file": (os.path.basename(file_path), f, "application/octet-stream")
                 }
-
+                print(f"Uploading file: {file_path} to AnythingLLM")
                 response = requests.post(
                     main_url + post_document_add_url,
                     headers=headers_files,
@@ -221,7 +270,7 @@ def add_files_to_anythingLLM(files_to_add):
                         {"from": location, "to": f"{folder_name}/{only_file_name}"}
                     ]
                 }
-
+                print(f"Moving file to new created folder: {change_folder_json}, change_folder_json: {change_folder_json}")
                 # Request to move the file to new created folder
                 response = requests.post(
                     main_url + move_to_folder_url,
@@ -232,6 +281,7 @@ def add_files_to_anythingLLM(files_to_add):
 
                 if response.status_code == 200:
                     # Save the file info to our database if upload was successful
+                    print(f"File {file_path} has been uploaded to AnythingLLM")
                     saveFile(file_path, folder_name)
                     update_embeddings.append([folder_name, only_file_name])
     except Exception as e:
@@ -347,12 +397,15 @@ def update_workspace_embeddings(list_of_new_embeddings):
 
                     created_workspaces.objects.create(name=workspace_name)
 
+                    print(f"Creating new workspace: {workspace_name}")
                     response = requests.post(
                         url=main_url + new_workspace_url,
                         headers=headers_json,
                         json=new_workspace_json,
                         timeout=10,
                     )
+
+                    print(f"Workspace {workspace_name} created, response: {response.json()}")
 
             # now lets create the array which we will send to the API to update embeddings for the workspaces
             file_name = new_workspace[1]
@@ -438,3 +491,9 @@ def saveFile(file_path, main_folder):
         )
     except Exception as e:
         print(f"Error saving files sources in DB {str(e)}")
+
+# The image_to_description function is now imported from describe_images.py
+# and doesn't need to be defined here again since we're using the imported version
+
+if __name__ == "__main__":
+    anythingLLM_update()

@@ -16,6 +16,8 @@ setuptools = "^75.8.2"
 django-q2 = "^1.7.6"
 django-cors-headers = "^4.7.0"
 requests = "^2.32.3"
+ollama = "^0.4.7"
+moondream = "^0.0.6"
 
 
 [build-system]
