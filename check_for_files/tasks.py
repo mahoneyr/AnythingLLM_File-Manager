@@ -6,7 +6,7 @@ from django.utils import timezone
 from .models import FileInfo, TaskError, created_workspaces
 from .describe_images import image_to_description
 
-host_folder = r"C:\test"
+
 describe_images = True
 
 # Get AnythingLLM API key and URL from environment variables
@@ -17,6 +17,18 @@ if not AnythingLLM_api:
 main_url = os.environ.get("ANYTHING_LLM_URL")
 if not main_url:
     raise ValueError("ANYTHING_LLM_URL environment variable is not set")
+
+#this is just for testing
+host_folder = os.environ.get("HOST_FOLDER")
+if not host_folder:
+    host_folder = "/app/AnythingLLM"
+else:
+    # Convert Windows path to Unix-style path for Docker
+    host_folder = host_folder.replace("\\", "/")
+
+image_description_activate = os.environ.get("IMAGE_DESCRIPTION_ACTIVATE", "false").lower() == "true"
+if not image_description_activate:
+    image_description_activate = False
 
 
 # different urls parts for the API
@@ -33,7 +45,7 @@ new_workspace_url = "/api/v1/workspace/new"
 
 files_to_add = []
 files_that_changed = []
-update_embeddings = []  # [foldername,filename]
+update_embeddings = []
 
 # header for all the get, post and delete requests which needs jsons.
 headers_json = {
@@ -44,10 +56,15 @@ headers_json = {
 
 
 def anythingLLM_update():
+    print(f"image_description_activate: {image_description_activate}")
+    global files_to_add, files_that_changed, files_got_deleted  # Deklariere die Variablen als global
+    files_to_add = []
+    files_that_changed = []
+
     try:
-        global files_to_add, files_that_changed, files_got_deleted  # Deklariere die Variablen als global
         
         files_got_deleted = check_for_files_still_exist()
+        print(f"start check_subfolder")
         check_subfolder(host_folder, host_folder, True)
         # Jetzt können Sie die globalen Variablen modifizieren
         files_to_add = remove_duplicates(files_to_add)
@@ -84,6 +101,7 @@ def anythingLLM_update():
         print(
             f"Done Updating, task was successful. {len(FileInfo.objects.all())} documents in DB"
         )
+
         TaskError.objects.create(success=True, error=None)
         return f"Done Updating, task was successful. Found {len(files_to_add)} files to add, {len(files_that_changed)} files that changed and {len(files_got_deleted)} files that got deleted."
     except Exception as e:
@@ -146,7 +164,7 @@ def check_subfolder(directory, main_folder, first_run):
                 pass
             elif first_run:
                 break
-            elif is_image:
+            elif is_image and image_description_activate:
                 # Check if .image_description file exists
                 base_name = os.path.splitext(file_path)[0]  # Remove image extension
                 description_file = base_name + '.image_description'
@@ -241,7 +259,7 @@ def add_files_to_anythingLLM(files_to_add):
                 files = {
                     "file": (os.path.basename(file_path), f, "application/octet-stream")
                 }
-                print(f"Uploading file: {file_path} to AnythingLLM")
+                print(f"Uploading file {file_path} to AnythingLLM: {main_url + post_document_add_url}")
                 response = requests.post(
                     main_url + post_document_add_url,
                     headers=headers_files,
@@ -263,6 +281,7 @@ def add_files_to_anythingLLM(files_to_add):
                     timeout=10,
                     verify=False
                 )
+
                 start = location.find("/") + 1
                 only_file_name = location[start:]
                 change_folder_json = {
@@ -270,7 +289,7 @@ def add_files_to_anythingLLM(files_to_add):
                         {"from": location, "to": f"{folder_name}/{only_file_name}"}
                     ]
                 }
-                print(f"Moving file to new created folder: {change_folder_json}, change_folder_json: {change_folder_json}")
+
                 # Request to move the file to new created folder
                 response = requests.post(
                     main_url + move_to_folder_url,
@@ -282,7 +301,6 @@ def add_files_to_anythingLLM(files_to_add):
 
                 if response.status_code == 200:
                     # Save the file info to our database if upload was successful
-                    print(f"File {file_path} has been uploaded to AnythingLLM")
                     saveFile(file_path, folder_name)
                     update_embeddings.append([folder_name, only_file_name])
     except Exception as e:
@@ -397,19 +415,21 @@ def update_workspace_embeddings(list_of_new_embeddings):
     # Then we make an API call for each workspace to update the embeddings.
     # -----------------------------
     try:
+        checked_workspaces = []
         workspaces_to_update = {}
         for workspace in list_of_new_embeddings:
             workspace_name = workspace[0]
-            response = requests.get(
-                url=main_url
-                + get_workspace_url
-                + str.lower(workspace_name).replace(" ", ""),
-                headers=headers_json,
-                timeout=10,
-                verify=False
-            )
-            if len(response.json()["workspace"]) == 0:
-                create_workspace_if_not_exists(workspace_name)
+            if workspace_name not in checked_workspaces:  # check or create workspace
+                response = requests.get(
+                    url=main_url
+                    + get_workspace_url
+                    + workspace_name.lower().replace(" ", "-"),
+                    headers=headers_json,
+                    timeout=10,
+                    verify=False
+                )
+                if len(response.json()["workspace"]) == 0:
+                    create_workspace_if_not_exists(workspace_name)
 
             # now lets create the array which we will send to the API to update embeddings for the workspaces
             file_name = workspace[1]
@@ -429,7 +449,7 @@ def update_workspace_embeddings(list_of_new_embeddings):
             requests.post(
                 url=main_url
                 + get_workspace_url
-                + key.replace(" ", "").lower()
+                + key.lower().replace(" ", "-")
                 + update_embeddings_url,
                 headers=headers_json,
                 json=json_to_send,
@@ -451,7 +471,7 @@ def delete_unused_workspaces():
             response = requests.get(
                 url=main_url
                 + get_workspace_url
-                + str.lower(workspace.name).replace(" ", ""),
+                + str.lower(workspace.name).replace(" ", "-"),
                 headers=headers_json,
                 timeout=10,
                 verify=False
@@ -463,7 +483,7 @@ def delete_unused_workspaces():
                     requests.delete(
                         url=main_url
                         + get_workspace_url
-                        + str.lower(workspace.name).replace(" ", ""),
+                        + str.lower(workspace.name).replace(" ", "-"),
                         headers=headers_json,
                         timeout=10,
                         verify=False
@@ -500,8 +520,6 @@ def saveFile(file_path, main_folder):
     except Exception as e:
         print(f"Error saving files sources in DB {str(e)}")
 
-# The image_to_description function is now imported from describe_images.py
-# and doesn't need to be defined here again since we're using the imported version
 
 if __name__ == "__main__":
     anythingLLM_update()

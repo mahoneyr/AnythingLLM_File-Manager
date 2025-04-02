@@ -8,25 +8,21 @@ services:
       - static_volume:/app/static
       - storage_volume:/app/storage
       - database_volume:/app/database
-      - C:\Users\Ron.Metzger\Pictures\Screenshots:/app/AnythingLLM
+      - C:\AnythingTest:/app/AnythingLLM
 
     environment:
       - DJANGO_SETTINGS_MODULE=main.settings
       - PYTHONPATH=/app
       - DATABASE_DIR=/app/database
       - STORAGE_DIR=/app/storage
+      - HOST_FOLDER=/app/AnythingLLM
       - PORT=8010
-      - ANYTHING_LLM_API=E4KJDN4-Z6R4QD1-NA06G41-38K48BS  #You can find it here: AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key
-      - ANYTHING_LLM_URL=https://kichat.korn.local:3003   #This is your URL to your AnythingLLM Instance (can be desktop or docker version). Don't use localhost
-      #You can get the URL using Developer API Window -> click on "Read the API documentation" -> URL could be http://192.168.80.40:3001/api/docs/ -> then use http://192.168.80.40:3001 with no "/" at the end
 
-      - USE_CRON=true #if true, then it updates based on timings. If false, you can only update via post request to localhost:PORT/update_files/update/
-      - CHECK_FILES_CRON=*/1 * * * *  # Run every minute, can be changed as needed
-      #cron examples:
-        # - `*/5 * * * *` (every 5 Minutes)
-        # - `0 * * * *` (every hour)
-        # - `0 */2 * * *` (every 2 hours)
-        # - `0 9-17 * * 1-5` (every hour between 9-17 o clock, monday-friday)
+
+      # - IMAGE_DESCRIPTION_ACTIVATE=true
+      # - OLLAMA_URL=http://localhost:11434/api/generate
+      # - IMAGE_DESCRIPTION_MODEL=gemma3:12b
+      # - IMAGE_DESCRIPTION_LANGUAGE=english
     ports:
       - "8010:8010"
     tty: true

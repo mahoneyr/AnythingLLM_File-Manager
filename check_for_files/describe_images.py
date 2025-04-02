@@ -3,6 +3,19 @@ import json
 from datetime import datetime
 import requests
 import base64
+
+ollama_url = os.environ.get("OLLAMA_URL")
+if not ollama_url:
+    ollama_url = "http://localhost:11434/api/generate"
+
+image_description_model = os.environ.get("IMAGE_DESCRIPTION_MODEL")
+if not image_description_model:
+    image_description_model = "gemma3:4b"
+
+image_description_language = os.environ.get("IMAGE_DESCRIPTION_LANGUAGE")
+if not image_description_language:
+    image_description_language = "english"
+
 def image_to_description(image_path: str, language: str = "german") -> str:
     """
     Sends an image to Ollama for description.
@@ -34,7 +47,7 @@ def image_to_description(image_path: str, language: str = "german") -> str:
 
         print("Sending request to Ollama...")
         # Read image file as binary
-        url = "http://kichat.korn.local:11434/api/generate"
+        url = ollama_url
         with open(image_path, "rb") as image_file:
           image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
 

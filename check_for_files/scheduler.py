@@ -6,9 +6,9 @@ from django_q.models import Schedule
 def setup_schedules():
     # Lösche eventuell vorhandene Schedules mit dem gleichen Namen
     Schedule.objects.filter(name="check_files_schedule").delete()
-
-    use_cron = os.environ.get("USE_CRON")
-
+    
+    use_cron = os.environ.get("USE_CRON", "false").lower() == "true"
+    
     if use_cron:
         # Get cron schedule from environment variable or use default (every minute)
         cron_schedule = os.environ.get("CHECK_FILES_CRON", "*/1 * * * *")
