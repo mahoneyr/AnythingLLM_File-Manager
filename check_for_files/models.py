@@ -23,7 +23,7 @@ class FileInfo(models.Model):
     modified_at = models.DateTimeField()
 
     def __str__(self):
-        return self.filename
+        return f" {self.id} - {self.filename} - {self.absolute_path} - {self.main_folder}"
 
 
 class created_workspaces(models.Model):

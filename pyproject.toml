@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "anythingllm-file-and-folder-backend"
+name = "anythingllm-file-manager"
 version = "0.1.0"
 description = ""
 authors = ["Ron Metzger <ron.metzger@korn-recycling.de>"]
@@ -16,8 +16,6 @@ setuptools = "^75.8.2"
 django-q2 = "^1.7.6"
 django-cors-headers = "^4.7.0"
 requests = "^2.32.3"
-ollama = "^0.4.7"
-moondream = "^0.0.6"
 
 
 [build-system]

@@ -8,7 +8,7 @@ services:
       - static_volume:/app/static
       - storage_volume:/app/storage
       - database_volume:/app/database
-      - Z:\Google Drive\AnythingLLM:/app/AnythingLLM
+      - C:\Users\Ron.Metzger\Pictures\Screenshots:/app/AnythingLLM
 
     environment:
       - DJANGO_SETTINGS_MODULE=main.settings
@@ -16,8 +16,8 @@ services:
       - DATABASE_DIR=/app/database
       - STORAGE_DIR=/app/storage
       - PORT=8010
-      - ANYTHING_LLM_API=EVE44FF-EWHM1VT-NRDYA6H-CCJP9TF  #You can find it here: AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key
-      - ANYTHING_LLM_URL=http://192.168.178.40:3001   #This is your URL to your AnythingLLM Instance (can be desktop or docker version). Don't use localhost
+      - ANYTHING_LLM_API=E4KJDN4-Z6R4QD1-NA06G41-38K48BS  #You can find it here: AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key
+      - ANYTHING_LLM_URL=https://kichat.korn.local:3003   #This is your URL to your AnythingLLM Instance (can be desktop or docker version). Don't use localhost
       #You can get the URL using Developer API Window -> click on "Read the API documentation" -> URL could be http://192.168.80.40:3001/api/docs/ -> then use http://192.168.80.40:3001 with no "/" at the end
 
       - USE_CRON=true #if true, then it updates based on timings. If false, you can only update via post request to localhost:PORT/update_files/update/

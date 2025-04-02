@@ -1,8 +1,8 @@
-from ollama import chat
 import os
 import json
 from datetime import datetime
-
+import requests
+import base64
 def image_to_description(image_path: str, language: str = "german") -> str:
     """
     Sends an image to Ollama for description.
@@ -33,23 +33,25 @@ def image_to_description(image_path: str, language: str = "german") -> str:
         prompt = f"Please describe this image in {language}. Describe what you see in detail. Be verbose and provide specific details. Do not use any abbreviations or slang. This is for a rag search. Your output is only the description of the image"
 
         print("Sending request to Ollama...")
-        response = chat(
-            model='gemma3:4b',
-            messages=[{
-                'role': 'user',
-                'content': prompt,
-                'images': [image_path]
-            }]
-        )
-        
+        # Read image file as binary
+        url = "http://kichat.korn.local:11434/api/generate"
+        with open(image_path, "rb") as image_file:
+          image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+
+        payload = {
+            "model": "gemma3:4b",
+            "prompt": prompt,
+            "images": [image_base64],
+            "stream": False
+          }
+        response = requests.post(url, json=payload, verify=False).json()["response"]
+
         # Get the filename without extension
         file_name = os.path.splitext(image_path)[0]
-        print(f"Saving description to: {file_name}.txt")
-        # print(response['message']['content'])
         
         with open(f"{file_name}.image_description", "w+", encoding='utf-8') as file:
             json.dump({
-                'description': response['message']['content'],
+                'description': response,
                 'timestamp': datetime.now().isoformat()
             }, file, ensure_ascii=False, indent=4)
             print("saved to json file")
@@ -65,7 +67,7 @@ def image_to_description(image_path: str, language: str = "german") -> str:
 
 if __name__ == "__main__":
     # Test mit absolutem Pfad
-    test_image_path = "Z:\\Google Drive\\Korn\\IMG_IMG_0069.jpg"
+    test_image_path = "C:\\Users\\Ron.Metzger\\Pictures\\Screenshots\\asdf.png"
     print(f"Starting image description for: {test_image_path}")
     description = image_to_description(test_image_path)
     print("Final result:")

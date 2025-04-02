@@ -1,13 +1,12 @@
 import os
 import time
 from datetime import datetime
-import time
 import requests
 from django.utils import timezone
 from .models import FileInfo, TaskError, created_workspaces
 from .describe_images import image_to_description
 
-host_folder = "Z:\Google Drive\AnythingLLM"
+host_folder = r"C:\test"
 describe_images = True
 
 # Get AnythingLLM API key and URL from environment variables
@@ -50,11 +49,14 @@ def anythingLLM_update():
         
         files_got_deleted = check_for_files_still_exist()
         check_subfolder(host_folder, host_folder, True)
-
         # Jetzt können Sie die globalen Variablen modifizieren
         files_to_add = remove_duplicates(files_to_add)
         files_got_deleted = remove_duplicates(files_got_deleted)
         files_that_changed = remove_duplicates(files_that_changed)
+        
+        print(f"Files to add: {files_to_add}")
+        print(f"Files that changed: {files_that_changed}")
+        print(f"Files got deleted: {files_got_deleted}")
 
         if (
             len(files_got_deleted) == 0
@@ -74,9 +76,9 @@ def anythingLLM_update():
 
         update_files_in_anythingLLM(files_that_changed)
 
-        # waiting for uploads
 
         update_workspace_embeddings(update_embeddings)
+        
         delete_unused_workspaces()
 
         print(
@@ -110,6 +112,16 @@ def list_files(directory):
         return []
 
 
+def file_in_db_or_updated(file_name, file_path, main_folder):
+    file_in_db = Is_File_In_DB(file_name, file_path)
+    if not file_in_db:  # Wenn die Datei NICHT in der DB ist
+        files_to_add.append([file_path, main_folder, file_name])
+    else:  # Wenn die Datei in der DB ist
+        if File_Changed(file_in_db, file_path):
+            files_that_changed.append([file_path, main_folder, file_name])
+            print(f"File {file_name} has changed.")
+                
+
 def check_subfolder(directory, main_folder, first_run):
     # ----------------------------
     # Checking each file and folder within the folder that was set within the docker-compose file.
@@ -122,52 +134,38 @@ def check_subfolder(directory, main_folder, first_run):
     # ----------------------------
     try:
         files = list_files(directory)
-        for file in files:
-            file_path = os.path.join(directory, file)
+        for file_name in files:
+            file_path = os.path.join(directory, file_name)
+            image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
             isdir = os.path.isdir(file_path)
+            is_image = file_name.lower().endswith(image_extensions)
+            
+            print(f"Checking file: {file_name} in directory: {directory}")
             if isdir:
-                check_subfolder(file_path, file, False)
+                check_subfolder(file_path, file_name, False)
                 pass
             elif first_run:
                 break
+            elif is_image:
+                # Check if .image_description file exists
+                base_name = os.path.splitext(file_path)[0]  # Remove image extension
+                description_file = base_name + '.image_description'
+                if os.path.exists(description_file):
+                    continue
+                description_path = image_to_description(file_path)
+                file_in_db_or_updated(file_name, description_path, main_folder)
             else:
-                file_name = os.path.basename(file_path)
-                absolute_path = os.path.abspath(file_path)
+                file_in_db_or_updated(file_name, file_path, main_folder)
 
-                if file_name.lower().endswith('.image_description'):
-                    continue                 
-                # Check if the file is an image
-                image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
-                is_image = file_name.lower().endswith(image_extensions)
-
-                if is_image and describe_images:
-                    description_path = image_to_description(absolute_path)
-                    print(f"Image description path: {description_path}")
-                    is_descriptive_file = True
-                    # files_to_add.append([description_path, main_folder, os.path.basename(description_path)])
-                    print("file path: ", absolute_path)
-                else:
-                    file_in_db = Is_File_In_DB(file_name, absolute_path)
-                    if is_descriptive_file:
-                    file_path = description_path
-                    file_name = os.path.basename(file_path)
-                    
-                    if not file_in_db:  # Wenn die Datei NICHT in der DB ist
-                        files_to_add.append([file_path, main_folder, file_name])
-                    else:  # Wenn die Datei in der DB ist
-                        if File_Changed(file_in_db, file_path):
-                            files_that_changed.append([file_path, main_folder, file_name])
-                            print(f"File {file_name} has changed.")
-                
                             
     except Exception as e:
         print(f"Error parsing {directory}: {str(e)} ")
 
-def Is_File_In_DB(file_name, absolute_path):
+def Is_File_In_DB(file_name, file_path):
     try:
         return FileInfo.objects.filter(
             filename=file_name, 
-            absolute_path=absolute_path
+            absolute_path=file_path
         ).first()
     except Exception as e:
         print(f"Error checking file in DB: {str(e)}")
@@ -249,6 +247,7 @@ def add_files_to_anythingLLM(files_to_add):
                     headers=headers_files,
                     files=files,
                     timeout=30,  # Increased timeout for file uploads
+                    verify=False
                 )
 
                 doc_info = response.json()["documents"]
@@ -262,6 +261,7 @@ def add_files_to_anythingLLM(files_to_add):
                     headers=headers_json,
                     json={"name": folder_name},
                     timeout=10,
+                    verify=False
                 )
                 start = location.find("/") + 1
                 only_file_name = location[start:]
@@ -277,6 +277,7 @@ def add_files_to_anythingLLM(files_to_add):
                     headers=headers_json,
                     json=change_folder_json,
                     timeout=10,
+                    verify=False
                 )
 
                 if response.status_code == 200:
@@ -301,7 +302,7 @@ def delete_files_from_anythingLLM(array_to_delete):
     try:
         # Get all documents from AnythingLLM
         response = requests.get(
-            main_url + get_documents_url, headers=headers_json, timeout=10
+            main_url + get_documents_url, headers=headers_json, timeout=10, verify=False
         )
         response.raise_for_status()
         local_files = response.json()["localFiles"]
@@ -323,6 +324,7 @@ def delete_files_from_anythingLLM(array_to_delete):
                 headers=headers_json,
                 json={"names": paths_to_delete},
                 timeout=10,
+                verify=False
             )
             response.raise_for_status()
 
@@ -358,6 +360,34 @@ def update_files_in_anythingLLM(files_that_changed):
     except Exception as e:
         print(f"Error updaing files: {str(e)}")
 
+def create_workspace_if_not_exists(workspace_name):
+    print(
+        f" {workspace_name} did not exist as a workspace, so we create one"
+    )
+    new_workspace_json = {
+        "name": f"🔄{workspace_name}",
+        "similarityThreshold": 0.25,
+        "openAiTemp": 0.7,
+        "openAiHistory": 20,
+        "openAiPrompt": "Given the following conversation, relevant context, and a follow up question, reply with an answer to the current question the user is asking. Return only your response to the question given the above information following the users instructions as needed.",
+        "queryRefusalResponse": "There is no relevant information in this workspace to answer your query.",
+        "chatMode": "chat",
+        "topN": 4,
+    }
+
+    created_workspaces.objects.create(name=workspace_name)
+
+    print(f"Creating new workspace: {workspace_name}")
+    response = requests.post(
+        url=main_url + new_workspace_url,
+        headers=headers_json,
+        json=new_workspace_json,
+        timeout=10,
+        verify=False
+    )
+
+    print(f"Workspace {workspace_name} created, response: {response.json()}")
+
 
 def update_workspace_embeddings(list_of_new_embeddings):
     # -----------------------------
@@ -367,56 +397,31 @@ def update_workspace_embeddings(list_of_new_embeddings):
     # Then we make an API call for each workspace to update the embeddings.
     # -----------------------------
     try:
-        checked_workspaces = []
         workspaces_to_update = {}
-        for new_workspace in list_of_new_embeddings:
-            workspace_name = new_workspace[0]
-            if workspace_name not in checked_workspaces:  # check or create workspace
-                checked_workspaces.append(workspace_name)
-                response = requests.get(
-                    url=main_url
-                    + get_workspace_url
-                    + str.lower(workspace_name).replace(" ", ""),
-                    headers=headers_json,
-                    timeout=10,
-                )
-                if len(response.json()["workspace"]) == 0:
-                    print(
-                        f" {workspace_name} did not exist as a workspace, so we create one"
-                    )
-                    new_workspace_json = {
-                        "name": f"🔄{workspace_name}",
-                        "similarityThreshold": 0.25,
-                        "openAiTemp": 0.7,
-                        "openAiHistory": 20,
-                        "openAiPrompt": "Given the following conversation, relevant context, and a follow up question, reply with an answer to the current question the user is asking. Return only your response to the question given the above information following the users instructions as needed.",
-                        "queryRefusalResponse": "There is no relevant information in this workspace to answer your query.",
-                        "chatMode": "chat",
-                        "topN": 4,
-                    }
-
-                    created_workspaces.objects.create(name=workspace_name)
-
-                    print(f"Creating new workspace: {workspace_name}")
-                    response = requests.post(
-                        url=main_url + new_workspace_url,
-                        headers=headers_json,
-                        json=new_workspace_json,
-                        timeout=10,
-                    )
-
-                    print(f"Workspace {workspace_name} created, response: {response.json()}")
+        for workspace in list_of_new_embeddings:
+            workspace_name = workspace[0]
+            response = requests.get(
+                url=main_url
+                + get_workspace_url
+                + str.lower(workspace_name).replace(" ", ""),
+                headers=headers_json,
+                timeout=10,
+                verify=False
+            )
+            if len(response.json()["workspace"]) == 0:
+                create_workspace_if_not_exists(workspace_name)
 
             # now lets create the array which we will send to the API to update embeddings for the workspaces
-            file_name = new_workspace[1]
+            file_name = workspace[1]
             if workspace_name in workspaces_to_update:
                 workspaces_to_update[workspace_name].append(
                     f"{workspace_name}/{file_name}"
                 )
             else:
                 workspaces_to_update[workspace_name] = [f"{workspace_name}/{file_name}"]
-        time.sleep(1)
+        print(f"Workspaces to update: {workspaces_to_update}")
         for key, val in workspaces_to_update.items():
+            print(val)
             json_to_send = {
                 "adds": val,
                 "deletes": [],
@@ -424,11 +429,12 @@ def update_workspace_embeddings(list_of_new_embeddings):
             requests.post(
                 url=main_url
                 + get_workspace_url
-                + key.replace(" ", "")
+                + key.replace(" ", "").lower()
                 + update_embeddings_url,
                 headers=headers_json,
                 json=json_to_send,
                 timeout=10,
+                verify=False
             )
     except Exception as e:
         print(f"Error updating embeddings: {str(e)}")
@@ -448,6 +454,7 @@ def delete_unused_workspaces():
                 + str.lower(workspace.name).replace(" ", ""),
                 headers=headers_json,
                 timeout=10,
+                verify=False
             )
             workspace_data = response.json()["workspace"]
             if len(workspace_data) != 0:
@@ -459,6 +466,7 @@ def delete_unused_workspaces():
                         + str.lower(workspace.name).replace(" ", ""),
                         headers=headers_json,
                         timeout=10,
+                        verify=False
                     )
                     workspace.delete()
     except Exception as e:
