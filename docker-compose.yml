@@ -17,12 +17,6 @@ services:
       - STORAGE_DIR=/app/storage
       - HOST_FOLDER=/app/AnythingLLM
       - PORT=8010
-
-
-      # - IMAGE_DESCRIPTION_ACTIVATE=true
-      # - OLLAMA_URL=http://localhost:11434/api/generate
-      # - IMAGE_DESCRIPTION_MODEL=gemma3:12b
-      # - IMAGE_DESCRIPTION_LANGUAGE=english
     ports:
       - "8010:8010"
     tty: true
