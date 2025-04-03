@@ -193,22 +193,24 @@ def check_subfolder(directory, main_folder, first_run):
         for file_path in directory_path.iterdir():
             file_name = file_path.name
             image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
-            isdir = file_path.is_dir()
-            is_image = file_name.lower().endswith(image_extensions)
             
             print(f"Checking file: {file_name} in directory: {directory}")
-            if isdir:
+            if file_path.is_dir():
                 check_subfolder(str(file_path), file_name, False)
                 pass
             elif first_run:
                 break
-            elif is_image and image_description_activate:
+            elif file_name.lower().endswith(image_extensions) and image_description_activate:
                 # Check if .image_description file exists
                 description_file = file_path.with_suffix('.image_description')
                 if description_file.exists():
                     continue
-                description_path = image_to_description(str(file_path))
-                file_in_db_or_updated(file_name, str(file_path), main_folder)
+                description_path, worked = image_to_description(str(file_path))
+                if worked:
+                    file_in_db_or_updated(file_name, str(description_path), main_folder)
+                else:
+                    print(f"Error when creating image description for {file_name}: {description_path}")
+                    continue
             else:
                 file_in_db_or_updated(file_name, str(file_path), main_folder)
                             
@@ -460,7 +462,6 @@ def delete_unused_workspaces():
                 verify=False
             )
             workspace_data = response.json()["workspace"]
-            print(f"Workspace data: {workspace_data}")
             if len(workspace_data) != 0:
                 this_workspace = workspace_data[0]
                 if len(this_workspace["documents"]) == 0:
