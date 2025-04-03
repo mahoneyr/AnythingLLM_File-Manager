@@ -5,7 +5,10 @@ import requests
 from django.utils import timezone
 from .models import FileInfo, TaskError, created_workspaces
 from .describe_images import image_to_description
+from pathlib import Path
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 describe_images = True
 
@@ -35,7 +38,7 @@ if not image_description_activate:
 get_workspaces_url = "/api/v1/workspaces"
 get_documents_url = "/api/v1/documents"
 delete_documents_url = "/api/v1/system/remove-documents"
-post_document_add_url = "/api/v1/document/upload"
+post_document_add_url = "/api/v1/document/upload/"
 create_folder_url = "/api/v1/document/create-folder"
 move_to_folder_url = "/api/v1/document/move-files"
 get_workspace_url = "/api/v1/workspace/"
@@ -75,14 +78,14 @@ def anythingLLM_update():
         print(f"Files that changed: {files_that_changed}")
         print(f"Files got deleted: {files_got_deleted}")
 
-        if (
-            len(files_got_deleted) == 0
-            and len(files_to_add) == 0
-            and len(files_that_changed) == 0
-        ):
-            print("Since no changes have been detected, nothing happens")
-            TaskError.objects.create(success=True, error="Early stop cause no changes")
-            return "Nothing to update"
+        #if (
+        #    len(files_got_deleted) == 0
+        #    and len(files_to_add) == 0
+        #    and len(files_that_changed) == 0
+        #):
+        #    print("Since no changes have been detected, nothing happens")
+        #    TaskError.objects.create(success=True, error="Early stop cause no changes")
+        #    return "Nothing to update"
 
         print(
             f"Found {len(files_to_add)} files to add, {len(files_that_changed)} files that changed and {len(files_got_deleted)} files that got deleted. Updating AnythingLLM now"
@@ -130,61 +133,22 @@ def list_files(directory):
         return []
 
 
-def file_in_db_or_updated(file_name, file_path, main_folder):
-    file_in_db = Is_File_In_DB(file_name, file_path)
-    if not file_in_db:  # Wenn die Datei NICHT in der DB ist
-        files_to_add.append([file_path, main_folder, file_name])
-    else:  # Wenn die Datei in der DB ist
-        if File_Changed(file_in_db, file_path):
-            files_that_changed.append([file_path, main_folder, file_name])
-            print(f"File {file_name} has changed.")
-                
-
-def check_subfolder(directory, main_folder, first_run):
-    # ----------------------------
-    # Checking each file and folder within the folder that was set within the docker-compose file.
-    # First run ignores files and just checks for folders.
-    # Every other run then checks for files and subfolders.
-    # If the file is new -> append it into an array of new files
-    # If the file has changed cause of size or creation date -> append to list of changed files.
-    # Deleted files will not get checked here, thats another function.
-    # We are also saving the main folder, so the first folder we entered. This is so we know to which workspace the file will belong
-    # ----------------------------
-    try:
-        files = list_files(directory)
-        for file_name in files:
-            file_path = os.path.join(directory, file_name)
-            image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
-            isdir = os.path.isdir(file_path)
-            is_image = file_name.lower().endswith(image_extensions)
-            
-            print(f"Checking file: {file_name} in directory: {directory}")
-            if isdir:
-                check_subfolder(file_path, file_name, False)
-                pass
-            elif first_run:
-                break
-            elif is_image and image_description_activate:
-                # Check if .image_description file exists
-                base_name = os.path.splitext(file_path)[0]  # Remove image extension
-                description_file = base_name + '.image_description'
-                if os.path.exists(description_file):
-                    continue
-                description_path = image_to_description(file_path)
-                file_in_db_or_updated(file_name, description_path, main_folder)
-            else:
-                file_in_db_or_updated(file_name, file_path, main_folder)
-
-                            
-    except Exception as e:
-        print(f"Error parsing {directory}: {str(e)} ")
-
 def Is_File_In_DB(file_name, file_path):
+    print(f"Checking if file {file_name} in is in the DB")
     try:
-        return FileInfo.objects.filter(
+        # Normalisiere den Pfad mit pathlib
+        normalized_path = Path(file_path).resolve()
+        file_info = FileInfo.objects.filter(
             filename=file_name, 
-            absolute_path=file_path
+            absolute_path=str(normalized_path)
         ).first()
+        
+        if file_info is not None:  # Wenn ein Objekt gefunden wurde
+            print(f"File {file_name} is in the DB")
+            return file_info  # Gib das FileInfo Objekt zurück
+        else:  # Wenn kein Objekt gefunden wurde (None)
+            print(f"File {file_name} is not in the DB")
+            return None
     except Exception as e:
         print(f"Error checking file in DB: {str(e)}")
         return None
@@ -211,6 +175,45 @@ def File_Changed(file_in_db, file_path):
         print(f"Error checking if file changed: {str(e)}")
         return False
 
+def file_in_db_or_updated(file_name, file_path, main_folder):
+    file_info = Is_File_In_DB(file_name, file_path)
+    if file_info is None:  # Wenn die Datei NICHT in der DB ist
+        files_to_add.append([file_path, main_folder.lower().replace(" ", "-"), file_name])
+    else:  # Wenn die Datei in der DB ist
+        if File_Changed(file_info, file_path):
+            files_that_changed.append([file_path, main_folder.lower().replace(" ", "-"), file_name])
+            print(f"File {file_name} has changed.")
+                
+
+def check_subfolder(directory, main_folder, first_run):
+    try:
+        # Konvertiere den Eingabepfad in ein Path-Objekt
+        directory_path = Path(directory)
+        # Liste alle Dateien im Verzeichnis
+        for file_path in directory_path.iterdir():
+            file_name = file_path.name
+            image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
+            isdir = file_path.is_dir()
+            is_image = file_name.lower().endswith(image_extensions)
+            
+            print(f"Checking file: {file_name} in directory: {directory}")
+            if isdir:
+                check_subfolder(str(file_path), file_name, False)
+                pass
+            elif first_run:
+                break
+            elif is_image and image_description_activate:
+                # Check if .image_description file exists
+                description_file = file_path.with_suffix('.image_description')
+                if description_file.exists():
+                    continue
+                description_path = image_to_description(str(file_path))
+                file_in_db_or_updated(file_name, str(file_path), main_folder)
+            else:
+                file_in_db_or_updated(file_name, str(file_path), main_folder)
+                            
+    except Exception as e:
+        print(f"Error parsing {directory}: {str(e)} ")
 
 def check_for_files_still_exist():
     # ----------------------------
@@ -260,46 +263,26 @@ def add_files_to_anythingLLM(files_to_add):
                     "file": (os.path.basename(file_path), f, "application/octet-stream")
                 }
                 print(f"Uploading file {file_path} to AnythingLLM: {main_url + post_document_add_url}")
+
                 response = requests.post(
-                    main_url + post_document_add_url,
+                    main_url + post_document_add_url + folder_name,
                     headers=headers_files,
                     files=files,
                     timeout=30,  # Increased timeout for file uploads
                     verify=False
                 )
+                if response.status_code != 200:
+                    print(f"Error uploading file {file_path} to AnythingLLM: {response.json()}")
+                    continue
 
                 doc_info = response.json()["documents"]
                 location = doc_info[0][
                     "location"
                 ]  # saving information of where it was saved within anythingLLM
 
-                # create a folder with the same name as the base folder of the uploaded file
-                response = requests.post(
-                    main_url + create_folder_url,
-                    headers=headers_json,
-                    json={"name": folder_name},
-                    timeout=10,
-                    verify=False
-                )
-
-                start = location.find("/") + 1
-                only_file_name = location[start:]
-                change_folder_json = {
-                    "files": [
-                        {"from": location, "to": f"{folder_name}/{only_file_name}"}
-                    ]
-                }
-
-                # Request to move the file to new created folder
-                response = requests.post(
-                    main_url + move_to_folder_url,
-                    headers=headers_json,
-                    json=change_folder_json,
-                    timeout=10,
-                    verify=False
-                )
-
                 if response.status_code == 200:
+                    start = location.find("/") + 1
+                    only_file_name = location[start:]
                     # Save the file info to our database if upload was successful
                     saveFile(file_path, folder_name)
                     update_embeddings.append([folder_name, only_file_name])
@@ -477,6 +460,7 @@ def delete_unused_workspaces():
                 verify=False
             )
             workspace_data = response.json()["workspace"]
+            print(f"Workspace data: {workspace_data}")
             if len(workspace_data) != 0:
                 this_workspace = workspace_data[0]
                 if len(this_workspace["documents"]) == 0:
