@@ -46,8 +46,7 @@ def image_to_description(image_path: str) -> str:
         prompt = f"Please describe this image in {image_description_language}. Describe what you see in detail. Be verbose and provide specific details. Do not use any abbreviations or slang. This is for a rag search. Your output is only the description of the image"
 
         print("Sending request to Ollama...")
-        # Read image file as binary
-        url = ollama_url
+
         with open(image_path, "rb") as image_file:
           image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
 
@@ -57,7 +56,7 @@ def image_to_description(image_path: str) -> str:
             "images": [image_base64],
             "stream": False
           }
-        response = requests.post(url, json=payload, verify=False).json()["response"]
+        response = requests.post(ollama_url, json=payload, verify=False).json()["response"]
 
         # Get the filename without extension
         file_name = os.path.splitext(image_path)[0]

@@ -1,3 +1,5 @@
+***I have found many bugs and are currently fixing them***
+
 # AnythingLLM File Management Backend 🚀
 
 A Django-based backend service that automatically manages file synchronization between a local directory and AnythingLLM. This service monitors file changes, handles uploads, updates, and deletions, while managing workspaces in AnythingLLM.

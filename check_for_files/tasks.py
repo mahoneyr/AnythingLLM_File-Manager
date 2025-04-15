@@ -10,7 +10,7 @@ from pathlib import Path
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-describe_images = True
+
 
 # Get AnythingLLM API key and URL from environment variables
 AnythingLLM_api = os.environ.get("ANYTHING_LLM_API")
@@ -44,7 +44,7 @@ move_to_folder_url = "/api/v1/document/move-files"
 get_workspace_url = "/api/v1/workspace/"
 update_embeddings_url = "/update-embeddings"
 new_workspace_url = "/api/v1/workspace/new"
-
+delete_folder_url = "/api/v1/document/remove-folder"
 
 files_to_add = []
 files_that_changed = []
@@ -101,6 +101,7 @@ def anythingLLM_update():
         
         delete_unused_workspaces()
 
+        delete_unused_folders()
         print(
             f"Done Updating, task was successful. {len(FileInfo.objects.all())} documents in DB"
         )
@@ -504,6 +505,29 @@ def saveFile(file_path, main_folder):
         )
     except Exception as e:
         print(f"Error saving files sources in DB {str(e)}")
+
+
+def delete_unused_folders():
+    # -----------------------------
+    # This function deletes empty folders from AnythingLLM
+    # -----------------------------
+    try:
+        response = requests.get(main_url + get_documents_url, headers=headers_json, timeout=10, verify=False)
+        folders = response.json()["localFiles"]["items"]
+        for folder in folders:
+            
+            if folder["name"] == "custom-documents": #we skip this basic folder since it always gets regenerated
+                continue
+
+            if folder["items"] == []:
+                json_to_send = {
+                    "name": folder["name"]
+                }
+                requests.delete(main_url + delete_folder_url, headers=headers_json, json=json_to_send, timeout=10, verify=False)
+                print(f"Deleted folder: {folder['name']}")
+    except Exception as e:
+        print(f"Error deleting unused folders: {str(e)}")
+    
 
 
 if __name__ == "__main__":
