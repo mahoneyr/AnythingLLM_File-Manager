@@ -70,10 +70,30 @@ LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
         },
+        "null": {
+            "class": "logging.NullHandler",
+        },
     },
     "root": {
         "handlers": ["console"],
         "level": "DEBUG",
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['null'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'urllib3': {
+            'handlers': ['null'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'requests': {
+            'handlers': ['null'],
+            'level': 'INFO',
+            'propagate': False,
+        },
     },
 }
 

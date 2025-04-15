@@ -41,3 +41,4 @@ media/
 .semgrep_logs/
 
 docker-compose.yml
+db.sqlite3

@@ -20,6 +20,10 @@ A Django-based backend service that automatically manages file synchronization b
   - 📁 Automatic workspace creation based on folder structure
   - 🧹 Cleanup of empty workspaces (when created by this software)
   - 🔄 Embedding updates for modified content
+- **Image Processing** 🖼️:
+  - 📷 Optional automatic image description using AI
+  - 🔍 Creates text descriptions of images for better RAG search
+  - 🧠 Uses Ollama for local AI image processing
 - **Configurable Scheduling** ⏳:
   - 🛠️ Customizable monitoring frequency via CRON configuration (set how often it looks for changes based on time)
   - ⏰ Default checking interval: every minute
@@ -30,22 +34,31 @@ A Django-based backend service that automatically manages file synchronization b
 - 🐳 Docker and Docker Compose
 - 🧠 AnythingLLM instance (works with desktop and docker version)
 - 🔑 Access to AnythingLLM Developer API
+- 👁️ Optional: Ollama for image description functionality
 
 ## Configuration ⚙️
 
 ### Environment Variables 🌍
 
-Configure the service using the following environment variables in your `docker-compose.yml`:
+Configuration is now managed through a `.env` file with the following variables:
 
-```yaml
-environment:
-  - ANYTHING_LLM_API=your_api_key
-  - ANYTHING_LLM_URL=your_anything_llm_url
-  - USE_CRON=true #activates time based checks
-  - CHECK_FILES_CRON=*/1 * * * *  # CRON schedule for file checking
+```
+ANYTHING_LLM_API=your_api_key
+ANYTHING_LLM_URL=your_anything_llm_url
+HOST_FOLDER=C:\YourFolder
+
+USE_CRON=true
+CHECK_FILES_CRON=*/1 * * * *
+
+# Image description settings (optional)
+OLLAMA_URL=http://localhost:11434/api/generate
+IMAGE_DESCRIPTION_ACTIVATE=true
+IMAGE_DESCRIPTION_MODEL=gemma3:4b
+IMAGE_DESCRIPTION_LANGUAGE=english
 ```
 
 🔑 You can find the developer API Key here: **AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key**
+
 🌍 You can get the URL from the Developer API Window -> Click on **"Read the API documentation"** -> Example URL: `http://192.168.80.35:3001/api/docs/` -> Use `http://192.168.80.35:3001` without a trailing `/`
 
 ### Volume Configuration 📁
@@ -71,6 +84,22 @@ Will create the Workspaces:
 
 🗑️ These workspaces also get deleted when the local folders are removed.
 
+## Image Description Feature 🖼️
+
+This feature automatically creates text descriptions for image files when enabled:
+
+1. **How it works:**
+   - Detects image files in monitored folders (.jpg, .jpeg, .png, .gif, .bmp, .tiff, .webp)
+   - Sends images to Ollama for AI-based description
+   - Creates a `.image_description` file alongside each image
+   - Only the text description gets uploaded to AnythingLLM, making embeddings more efficient
+
+2. **Configuration:**
+   - Enable with `IMAGE_DESCRIPTION_ACTIVATE=true`
+   - Configure Ollama URL with `OLLAMA_URL=http://your-ollama-instance:11434/api/generate`
+   - Select model with `IMAGE_DESCRIPTION_MODEL=gemma3:4b` (or another compatible model)
+   - Choose language with `IMAGE_DESCRIPTION_LANGUAGE=english` (or other language)
+
 ## Installation and Setup 🚀
 
 1. **Clone the repository**:
@@ -79,16 +108,16 @@ git clone https://github.com/MrMarans/AnythingLLM_File-Manager.git
 ```
 
 2. **Configure your environment**:
-   - 🛠️ Modify `docker-compose.yml`
-   - 🔑 Adjust environment variables (API key, AnythingLLM URL, watched folder path)
-   - 📂 Set correct volume mapping for your monitored directory
+   - 🛠️ Create a `.env` file with required environment variables
+   - 🔑 Set your API key, AnythingLLM URL, watched folder path
+   - 📂 Configure docker-compose.yml with the correct volume mapping for your monitored directory
 
 3. **Start the service**:
 ```bash
 docker-compose up -d
 ```
 
-🆙 **Updating to a new version or updating the docker-compose file?** Use:
+🆙 **Updating to a new version or updating the configuration?** Use:
 ```bash
 docker-compose down
 docker-compose up -d --build
@@ -107,7 +136,13 @@ docker-compose up -d --build
    - ❌ Deleted files are removed
    - 🏢 Workspaces are created based on folder structure
 
-3. **Workspace Management** 🏗️:
+3. **Image Processing** (when enabled) 🖼️:
+   - 🔍 Detects image files in monitored directories
+   - 🧠 Sends them to Ollama for description generation
+   - 📝 Saves descriptions as separate files
+   - 📤 Uploads only the text descriptions to AnythingLLM
+
+4. **Workspace Management** 🏗️:
    - 📁 Creates workspaces automatically for new folders
    - 🔄 Updates embeddings when files change
    - 🧹 Removes empty workspaces to maintain cleanliness
@@ -122,13 +157,13 @@ You can modify the `CHECK_FILES_CRON` environment variable to adjust the checkin
 - `0 */2 * * *` - ⏲️ Every 2 hours
 - `0 9-17 * * 1-5` - ⏰ Every hour between 9 AM and 5 PM, Monday to Friday
 
-To deactivate CRON Scheduler, set `USE_CRON=false` in the `docker-compose.yml`
+To deactivate CRON Scheduler, set `USE_CRON=false` in the `.env` file
 
 
 ## Update via API
 
 You can let the files manually update with a post request to the **ip:port/update_files/update/** endpoint.
-For most people it will be **http://localhost:8010/update_files/update/**
+For most people it will be **http://localhost:8000/update_files/update/**
 
 ## Troubleshooting 🛠️
 
@@ -149,6 +184,11 @@ Common issues and their solutions:
    - 📜 Check container logs for scheduling errors
    - 🌍 Ensure the container has the correct timezone settings
 
+4. **Image description not working** 🖼️:
+   - ✅ Check Ollama is running and accessible
+   - 🔍 Verify `OLLAMA_URL` is correct
+   - 📝 Ensure the specified model is available in your Ollama instance
+
 ## Logs 📜
 
 The service logs all operations and errors. Access the logs using:
@@ -163,10 +203,6 @@ For issues, questions, or contributions:
 - 📝 Create an issue in the repository
 - 🛠️ Include logs and configuration details when reporting issues
 
-## Known Issues ⚠️
-
-- ⚠️ While we can **create new Workspaces and delete them**, we can only **create new folders**.
-  - **Folder deletion is not yet supported** via the AnythingLLM API. This will be added once supported.
 
 ## Upcoming Changes 🚀
 
