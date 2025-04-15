@@ -16,9 +16,9 @@ services:
       - DATABASE_DIR=/app/database
       - STORAGE_DIR=/app/storage
       - HOST_FOLDER=/app/AnythingLLM
-      - PORT=8010
+      - PORT=8000
     ports:
-      - "8010:8010"
+      - "8000:8000"
     tty: true
     stdin_open: true
     restart: always

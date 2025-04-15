@@ -4,7 +4,7 @@ from datetime import datetime
 import requests
 from django.utils import timezone
 from .models import FileInfo, TaskError, created_workspaces
-from .describe_images import image_to_description
+from .describe_images import ImageDescriber
 from pathlib import Path
 
 import urllib3
@@ -18,7 +18,8 @@ class FileScanner:
         self.files_that_changed = []
         self.files_got_deleted = []
 
-        
+        self.image_describer = ImageDescriber(verbose=self.verbose)
+
         self.host_folder = os.environ.get("HOST_FOLDER")
         if not self.host_folder:
             self.host_folder = "/app/AnythingLLM"
@@ -102,7 +103,7 @@ class FileScanner:
                     description_file = file_path.with_suffix('.image_description')
                     if description_file.exists():
                         continue
-                    description_path, worked = image_to_description(str(file_path))
+                    description_path, worked = self.image_describer.image_to_description(str(file_path))
                     if worked:
                         self._file_in_db_or_updated(file_name, str(description_path), main_folder)
                     else:

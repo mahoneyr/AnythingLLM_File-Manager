@@ -10,6 +10,7 @@ from .tasks import main
 
 @api_view(["POST"])
 def upload(request):
+    print("Uploading files")
     finished_text = main()
     return Response(finished_text, status=status.HTTP_200_OK)
    
