@@ -57,6 +57,11 @@ headers_json = {
     "Content-Type": "application/json",
 }
 
+class FileManager:
+    def __init__(self):
+        self.files_to_add = []
+        self.files_that_changed = []
+        self.update_embeddings = []
 
 def anythingLLM_update():
     print(f"image_description_activate: {image_description_activate}")
