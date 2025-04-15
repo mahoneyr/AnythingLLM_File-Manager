@@ -43,7 +43,6 @@ Configuration is now managed through a `.env` file with the following variables:
 ```
 ANYTHING_LLM_API=your_api_key
 ANYTHING_LLM_URL=your_anything_llm_url
-HOST_FOLDER=C:\YourFolder
 
 USE_CRON=true
 CHECK_FILES_CRON=*/1 * * * *
@@ -54,6 +53,8 @@ IMAGE_DESCRIPTION_ACTIVATE=true
 IMAGE_DESCRIPTION_MODEL=gemma3:4b
 IMAGE_DESCRIPTION_LANGUAGE=english
 ```
+
+
 
 🔑 You can find the developer API Key here: **AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key**
 
@@ -67,6 +68,8 @@ Specify the directory to monitor in `docker-compose.yml`:
 volumes:
   - C:\YOUR_PATH:/app/AnythingLLM
 ```
+
+⚠️ **Important**: You must modify the volume path in `docker-compose.yml` from the default `C:\AnythingTest:/app/AnythingLLM` to your own local directory that should be monitored.
 
 📂 The program will scan every folder within the specified path.
 
@@ -204,8 +207,11 @@ For issues, questions, or contributions:
 
 ## Upcoming Changes 🚀
 
-- 🛠️ Code improvements
-- 📜 Adding an option for a `workspace.json` file to configure workspace settings
+- 🛠️ Additional API endpoints for granular control
+- 🖼️ Endpoint for on-demand image description
+- 📝 API documentation improvements
+- 🎯 Check if filetype is supported by AnythingLLM
+- 🚀 Much More exciting features!
 
 ## Security Information 🔒
 
