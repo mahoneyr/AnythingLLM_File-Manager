@@ -523,11 +523,9 @@ class AnythingLLM_API_Client:
 
 
 def main():
-    if os.environ.get("VERBOSE") == "true":
-        verbose = True
-    else:
+    verbose = os.environ.get("VERBOSE", "false").lower() == "true"
+    if not verbose:
         verbose = False
-
 
     file_scanner = FileScanner(verbose=verbose)
     files_to_add, files_that_changed, files_got_deleted  = file_scanner.scan_files()

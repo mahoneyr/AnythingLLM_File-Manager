@@ -109,7 +109,7 @@ This feature automatically creates text descriptions for image files when enable
 
 ⚠️ **BETA Feature**: The file sorting functionality is currently in beta and not completely tested yet. Use with caution. 🧪 🔍
 
-This feature automatically organizes documents into folders based on their workspace associations: 🌟 ✨
+This feature automatically organizes documents into folders based on their workspace associations. This feature is only required if you are uploading and embeding through the AnythingLLM Frontend, since automatic uploads from this App already manages files. 🌟 ✨
 
 1. **How it works:** 🛠️
    - 🔍 Analyzes which workspaces each document is embedded in
