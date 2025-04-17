@@ -542,7 +542,7 @@ def main():
     if os.environ.get("DELETE_UNUSED_FOLDERS") == "true":
         anythingLLM_api_client.delete_unused_folders()
 
-        
+    return f"Files added: {len(files_to_add)}, Files changed: {len(files_that_changed)}, Files deleted: {len(files_got_deleted)}. File system got organized."
 
 if __name__ == "__main__":
     main()

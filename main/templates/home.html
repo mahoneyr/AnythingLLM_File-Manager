@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnythingLLM File Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .button-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .action-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .action-button:hover {
+            background-color: #45a049;
+        }
+        .action-button p {
+            margin: 5px 0 0 0;
+            font-size: 14px;
+            color: #eee;
+        }
+        #response-container {
+            margin-top: 30px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: white;
+            min-height: 100px;
+            display: none;
+        }
+        .response-heading {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>AnythingLLM File Manager</h1>
+    
+    <div class="button-container">
+        <button class="action-button" onclick="performAction('/update_files/update/')">
+            Full Upload and Cleaning
+            <p>Upload files and perform cleaning operations</p>
+        </button>
+        <button class="action-button" onclick="performAction('/update_files/sort/')">
+            Sort Files
+            <p>Sort files into appropriate folders</p>
+        </button>
+        <button class="action-button" onclick="performAction('/update_files/clean/')">
+            Clean Folders
+            <p>Delete unused folders</p>
+        </button>
+        <button class="action-button" onclick="performAction('/update_files/scan/', 'GET')">
+            Scan Files
+            <p>Get information about file differences</p>
+        </button>
+    </div>
+
+    <div id="response-container">
+        <div class="response-heading">Response:</div>
+        <div id="response-content"></div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function performAction(url, method = 'POST') {
+            const responseContainer = document.getElementById('response-container');
+            const responseContent = document.getElementById('response-content');
+            
+            responseContent.textContent = 'Processing...';
+            responseContainer.style.display = 'block';
+            
+            try {
+                const options = { method };
+                
+                // If it's a POST request, add CSRF token
+                if (method === 'POST') {
+                    const csrftoken = getCookie('csrftoken');
+                    options.headers = {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json'
+                    };
+                    options.body = JSON.stringify({});
+                }
+                
+                const response = await fetch(url, options);
+                const result = await response.text();
+                
+                responseContent.textContent = result;
+            } catch (error) {
+                responseContent.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

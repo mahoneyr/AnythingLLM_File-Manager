@@ -30,7 +30,7 @@ class SortFiles:
                         "adds": add,
                         "deletes": delete
                     }
-        print(f"json_to_send embedding: {json_to_send}")
+        if self.verbose: print(f"json_to_send embedding: {json_to_send}")
         response = requests.post(f"https://kichat.korn.local:3003/api/v1/workspace/{workspace}/update-embeddings", headers=self.headers_json, timeout=10, verify=False, json=json_to_send)
 
     def move_document(self, docpath, docname, folder_name) -> str:
@@ -43,7 +43,7 @@ class SortFiles:
                 }
             ]
         }
-        print(f"json_to_send: {json_to_send}")
+        if self.verbose: print(f"json_to_send: {json_to_send}")
         response = requests.post(f"https://kichat.korn.local:3003/api/v1/document/move-files", headers=self.headers_json, timeout=10, verify=False, json=json_to_send)
         return new_path
 
@@ -61,34 +61,37 @@ class SortFiles:
                 else:
                     self.embedded_documents[doc["filename"]] = {"in_workspaces": [workspace["slug"]], "path": doc["docpath"]}
 
-        print(self.embedded_documents)
+        if self.verbose: print(self.embedded_documents)
 
         #step 2: remove embeddings
         for doc in self.embedded_documents:
             if len(self.embedded_documents[doc]["in_workspaces"]) !=0:
-                print(f"doc {doc} is in workspaces {self.embedded_documents[doc]['in_workspaces']}")
+                if self.verbose:print(f"doc {doc} is in workspaces {self.embedded_documents[doc]['in_workspaces']}")
                 # remove the embedding from the document
                 for workspace in self.embedded_documents[doc]["in_workspaces"]:
                     self.change_embedding(workspace, add=[], delete=[self.embedded_documents[doc]['path']])
 
-
+        files_moved = 0
         # step 3: check folders for embedded documents
         all_folders = self.get_folders_list()
         for doc in self.embedded_documents:
             if len(self.embedded_documents[doc]["in_workspaces"]) == 1:
-                print("doc is in one workspace")
+                if self.verbose: print("doc is in one workspace")
                 new_foldername = self.embedded_documents[doc]["in_workspaces"][0]
-                print(f"new foldername: {new_foldername}")
+                if self.verbose:print(f"new foldername: {new_foldername}")
 
                 if new_foldername not in all_folders:
                     response = requests.post("https://kichat.korn.local:3003/api/v1/document/create-folder", headers=self.headers_json, timeout=10, verify=False, json={"name": new_foldername}).json()
                 new_path = self.move_document(self.embedded_documents[doc]["path"], doc, new_foldername)
                 self.change_embedding(self.embedded_documents[doc]["in_workspaces"][0], add=[new_path], delete=[])
-
+                files_moved += 1
             elif len(self.embedded_documents[doc]["in_workspaces"]) > 1:
-                print("doc is in multiple workspaces")
+                if self.verbose: print("doc is in multiple workspaces")
             else:
-                print("doc is not in any workspace")
+                if self.verbose: print("doc is not in any workspace")
+
+        if self.verbose: print(f"Files moved: {files_moved}")
+        return files_moved
 
 if __name__ == "__main__":
     sort_files = SortFiles()

@@ -1,10 +1,12 @@
 from django.urls import path
 
-from .views import upload
+from .views import *
 
 app_name = "pingLinks"
 
 urlpatterns = [
-    path("update/", upload),
-    # path("redeploy/execute/", views.execute_command, name="execute_command"),
+    path("update/", full_upload_and_cleaning, name="update"),
+    path("sort/", sort_files, name="sort"),
+    path("clean/", clean_folders, name="clean"),
+    path("scan/", get_file_differences, name="scan"),
 ]
