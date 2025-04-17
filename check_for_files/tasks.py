@@ -37,6 +37,10 @@ class FileScanner:
         self.files_to_add = []
         self.files_that_changed = []
         self.files_got_deleted = []
+        
+        self.image_description_activate = os.environ.get("IMAGE_DESCRIPTION_ACTIVATE", "false").lower() == "true"
+        if not self.image_description_activate:
+            self.image_description_activate = False
 
     def scan_files(self):
         if self.verbose: print(f"image_description_activate: {self.image_description_activate}")
@@ -63,6 +67,11 @@ class FileScanner:
         
         return self.files_to_add, self.files_that_changed, self.files_got_deleted
 
+    def create_image_descriptions(self):
+        if self.verbose: print(f"image_description_activate: {self.image_description_activate}")
+        self.image_description_activate= True
+        self._check_subfolder( directory = self.host_folder, main_folder = self.host_folder, first_run = True)
+        self._remove_duplicates()
 
     def _check_for_files_still_exist(self):
         # ----------------------------

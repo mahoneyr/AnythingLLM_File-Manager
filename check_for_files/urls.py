@@ -9,4 +9,5 @@ urlpatterns = [
     path("sort/", sort_files, name="sort"),
     path("clean/", clean_folders, name="clean"),
     path("scan/", get_file_differences, name="scan"),
+    path("create_image_descriptions/", create_image_descriptions, name="create_image_descriptions"),
 ]

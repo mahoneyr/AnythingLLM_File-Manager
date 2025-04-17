@@ -35,3 +35,12 @@ def get_file_differences(request):
     files_to_add, files_that_changed, files_got_deleted  = file_scanner.scan_files()
     file_scanner.reset()
     return Response(f"Files to add: {files_to_add}, Files that changed: {files_that_changed}, Files got deleted: {files_got_deleted}", status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+def create_image_descriptions(request):
+    file_scanner = FileScanner(verbose=False)
+    file_scanner.create_image_descriptions()
+    file_scanner.reset()
+    return Response("Image descriptions created", status=status.HTTP_200_OK)
+
+
