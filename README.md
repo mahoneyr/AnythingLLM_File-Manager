@@ -198,6 +198,28 @@ To deactivate CRON Scheduler, set `USE_CRON=false` in the `.env` file
 You can let the files manually update with a post request to the **ip:port/update_files/update/** endpoint.
 For most people it will be **http://localhost:8000/update_files/update/**
 
+## Web UI Interface 🖥️ 🖱️
+
+The application includes a simple web UI for managing your AnythingLLM files directly from your browser 🌐:
+
+1. **How to access:** 🔗
+   - Open your browser and navigate to the application's base URL (e.g., **http://localhost:8000/**)
+   - You'll see a user-friendly dashboard with action buttons
+
+2. **Available actions:** 🎮
+   - 📤 **Full Upload and Cleaning** - Upload files and perform cleaning operations
+   - 🗂️ **Sort Files** - Sort files into appropriate folders based on workspace associations
+   - 🧹 **Clean Folders** - Delete unused folders
+   - 🔍 **Scan Files** - Check for new, changed, or deleted files (doesn't upload anything)
+   - 🖼️ **Create Image Descriptions** - Generate descriptions for all images
+
+3. **Usage:** 👆
+   - Simply click on the desired action button
+   - The system will execute the requested operation
+   - Results will be displayed in the response area below the buttons
+
+This interface provides a convenient alternative to API calls or waiting for scheduled CRON jobs to run. 💫
+
 ## Troubleshooting 🛠️
 
 Common issues and their solutions:
@@ -243,12 +265,11 @@ For issues, questions, or contributions:
 - 🛠️ Additional API endpoints for granular control
 - 🖼️ Endpoint for on-demand image description
 - 📝 API documentation improvements
-- 🎛️ UI to change settings
 - 👤 Face Recognition Feature for Image Description
 - 🎯 Check if filetype is supported by AnythingLLM
 - 🚀 Much More exciting features!
 
-- Version 1.0 will release with AnythingLLM Desktop Support, an UI for settings and granular API endpoints. No releasdate or window yet clear!
+- Version 1.0 will release with AnythingLLM Desktop Support and granular API endpoints. No releasdate or window yet clear!
 
 ## Security Information 🔒
 
