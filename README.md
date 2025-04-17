@@ -1,6 +1,8 @@
+*Currently available as Version 0.9 (BETA)*
+
 # AnythingLLM File Management Backend 🚀
 
-A Django-based backend service that automatically manages file synchronization between a local directory and AnythingLLM. This service monitors file changes, handles uploads, updates, and deletions, while managing workspaces in AnythingLLM.
+A Django-powered backend service that automates file and workspace management in AnythingLLM through configurable environment settings. The service creates a synchronized mirror of your local filesystem structure within AnythingLLM, automatically handling workspace creation and document embedding. This eliminates the need for manual file management - simply place files in the designated directory and the system handles all workspace organization and embedding processes automatically.
 
 ## Features ✨
 
@@ -10,7 +12,7 @@ A Django-based backend service that automatically manages file synchronization b
   - 🗑️ Deleted files
 - **AnythingLLM Integration** 🔗:
   - 📤 Automatic file upload to AnythingLLM
-  - 📝 File updates when content changes
+  - 📝 File reupload when content changes for the local files
   - ❌ Removal of deleted files
   - 🏢 Workspace management (creation and deletion)
   - ⚠️ Only deleting workspaces created by this backend! No workspaces created via the AnythingLLM UI will be removed.
@@ -52,8 +54,10 @@ OLLAMA_URL=http://localhost:11434/api/generate
 IMAGE_DESCRIPTION_ACTIVATE=true
 IMAGE_DESCRIPTION_MODEL=gemma3:4b
 IMAGE_DESCRIPTION_LANGUAGE=english
-```
 
+SORT_FILES=true
+DELETE_UNUSED_FOLDERS=false
+```
 
 
 🔑 You can find the developer API Key here: **AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key**
@@ -101,6 +105,34 @@ This feature automatically creates text descriptions for image files when enable
    - Select model with `IMAGE_DESCRIPTION_MODEL=gemma3:4b` (or another compatible model)
    - Choose language with `IMAGE_DESCRIPTION_LANGUAGE=english` (or other language)
 
+## File Sorting Feature 🗂️ 📁 🔄
+
+⚠️ **BETA Feature**: The file sorting functionality is currently in beta and not completely tested yet. Use with caution. 🧪 🔍
+
+This feature automatically organizes documents into folders based on their workspace associations: 🌟 ✨
+
+1. **How it works:** 🛠️
+   - 🔍 Analyzes which workspaces each document is embedded in
+   - 📁 Creates folders with workspace names if they don't already exist
+   - 🔄 Moves documents into folders that match their workspace names
+   - 1️⃣ For documents in exactly one workspace: moves them to a folder named after that workspace
+   - 🔀 For documents in multiple workspaces: special handling applied (feature in development)
+   - 📌 Documents not in any workspace remain in their original location
+
+2. **Configuration:** ⚙️
+   - ✅ Enable with `SORT_FILES=true` in your `.env` file
+   - 🧹 Optionally enable `DELETE_UNUSED_FOLDERS=true` to clean up empty folders
+   
+3. **Use cases:** 💼
+   - 🗄️ Automatically organize documents by their logical workspace groupings
+   - 🧩 Maintain cleaner file structure that mirrors your AnythingLLM workspaces
+   - 📚 Simplify document management for large knowledge bases
+
+4. **Limitations (Beta):** ⚠️
+   - 🔀 Documents in multiple workspaces may not be sorted optimally yet
+   - 🐢 Large document collections may take longer to process
+   - 🧩 Some edge cases may not be handled properly
+
 ## Installation and Setup 🚀
 
 1. **Clone the repository**:
@@ -109,7 +141,7 @@ git clone https://github.com/MrMarans/AnythingLLM_File-Manager.git
 ```
 
 2. **Configure your environment**:
-   - 🛠️ Create a `.env` file with required environment variables
+   - 🛠️ Create a `.env` file with required environment variables (check out the `.env.example` file)
    - 🔑 Set your API key, AnythingLLM URL, watched folder path
    - 📂 Configure docker-compose.yml with the correct volume mapping for your monitored directory
 
@@ -202,6 +234,7 @@ docker-compose logs -f
 
 For issues, questions, or contributions:
 - 📝 Create an issue in the repository
+- Make `VERBOSE` true in the .env file, this will print more logs
 - 🛠️ Include logs and configuration details when reporting issues
 
 
@@ -210,12 +243,16 @@ For issues, questions, or contributions:
 - 🛠️ Additional API endpoints for granular control
 - 🖼️ Endpoint for on-demand image description
 - 📝 API documentation improvements
+- 🎛️ UI to change settings
+- 👤 Face Recognition Feature for Image Description
 - 🎯 Check if filetype is supported by AnythingLLM
 - 🚀 Much More exciting features!
 
+- Version 1.0 will release with AnythingLLM Desktop Support, an UI for settings and granular API endpoints. No releasdate or window yet clear!
+
 ## Security Information 🔒
 
-⚠️ **No security testing has been conducted. Use at your own risk.** This has not been tested for production. Please review the `settings.py` file and adjust as needed.
+⚠️ **No security testing has been conducted. Use at your own risk.** This has not been tested for production. Please review the `settings.py` file and adjust as needed. You have been warned.
 
 🔐 If you have security expertise, **pull requests with security improvements are welcome!**
 

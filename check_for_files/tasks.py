@@ -9,7 +9,7 @@ from pathlib import Path
 
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
+from .sort_files import SortFiles
 
 class FileScanner:
     def __init__(self, verbose = False):
@@ -521,12 +521,30 @@ class AnythingLLM_API_Client:
 
 
 
+
 def main():
-    file_scanner = FileScanner()
+    if os.environ.get("VERBOSE") == "true":
+        verbose = True
+    else:
+        verbose = False
+
+
+    file_scanner = FileScanner(verbose=verbose)
     files_to_add, files_that_changed, files_got_deleted  = file_scanner.scan_files()
-    anythingLLM_api_client = AnythingLLM_API_Client()
+    anythingLLM_api_client = AnythingLLM_API_Client(verbose=verbose)
     anythingLLM_api_client.update(files_to_add=files_to_add, files_that_changed=  files_that_changed, files_got_deleted= files_got_deleted,)
     file_scanner.reset()
     anythingLLM_api_client.reset()
+    
+    # Sort files in AnythingLLM
+    if os.environ.get("SORT_FILES") == "true":
+        sort_files = SortFiles(verbose=verbose)
+        sort_files.sort_files()
+        sort_files.reset()
+    if os.environ.get("DELETE_UNUSED_FOLDERS") == "true":
+        anythingLLM_api_client.delete_unused_folders()
+
+        
+
 if __name__ == "__main__":
     main()
