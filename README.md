@@ -197,6 +197,10 @@ To deactivate CRON Scheduler, set `USE_CRON=false` in the `.env` file
 
 You can let the files manually update with a post request to the **ip:port/update_files/update/** endpoint.
 For most people it will be **http://localhost:8000/update_files/update/**
+Also available are: 
+- update_files/sort/  for sorting files in folders 
+- update_files/clean/  for deleting empty folders in AnythingLLMN 
+- update_files/scan/  to just check how many file updates there are
 
 ## Web UI Interface 🖥️ 🖱️
 
