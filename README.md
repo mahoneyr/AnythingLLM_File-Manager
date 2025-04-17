@@ -2,32 +2,21 @@
 
 # AnythingLLM File Management Backend 🚀
 
-A Django-powered backend service that automates file and workspace management in AnythingLLM through configurable environment settings. The service creates a synchronized mirror of your local filesystem structure within AnythingLLM, automatically handling workspace creation and document embedding. This eliminates the need for manual file management - simply place files in the designated directory and the system handles all workspace organization and embedding processes automatically.
+A Django service that automatically syncs and manages files between your local filesystem and AnythingLLM. Just add files to your monitored folder and the system handles workspace organization and embedding automatically.
 
 ## Features ✨
 
-- **Automated File Monitoring** 📂: Continuously monitors a specified directory for:
-  - ✅ New files
-  - 🔄 Modified files
-  - 🗑️ Deleted files
+- **File Monitoring** 📂: Watches for new, modified and deleted files
 - **AnythingLLM Integration** 🔗:
-  - 📤 Automatic file upload to AnythingLLM
-  - 📝 File reupload when content changes for the local files
-  - ❌ Removal of deleted files
-  - 🏢 Workspace management (creation and deletion)
-  - ⚠️ Only deleting workspaces created by this backend! No workspaces created via the AnythingLLM UI will be removed.
-- **Smart Workspace Management** 🏗️:
-  - 📁 Automatic workspace creation based on folder structure
-  - 🧹 Cleanup of empty workspaces (when created by this software)
-  - 🔄 Embedding updates for modified content
+  - 📤 Automatic file upload and updates
+  - 🏢 Workspace management
+  - ❌ Cleanup of deleted files
 - **Image Processing** 🖼️:
-  - 📷 Optional automatic image description using AI
-  - 🔍 Creates text descriptions of images for better RAG search
-  - 🧠 Uses Ollama for local AI image processing
-- **Configurable Scheduling** ⏳:
-  - 🛠️ Customizable monitoring frequency via CRON configuration (set how often it looks for changes based on time)
-  - ⏰ Default checking interval: every minute
-  - 📧 Custom updates with a post request to **/update_files/update/**
+  - 📷 AI-powered image descriptions using Ollama
+  - 🔍 Text descriptions for better search
+- **Scheduling** ⏳:
+  - ⏰ Configurable CRON schedule
+  - 📧 Manual updates via API endpoint and frontend
 
 ## Prerequisites 🛠️
 
@@ -40,98 +29,69 @@ A Django-powered backend service that automates file and workspace management in
 
 ### Environment Variables 🌍
 
-Configuration is now managed through a `.env` file with the following variables:
+Quick config via `.env` file:
 
 ```
-ANYTHING_LLM_API=your_api_key
-ANYTHING_LLM_URL=your_anything_llm_url
+ANYTHING_LLM_API=your_api_key        # AnythingLLM API key
+ANYTHING_LLM_URL=your_anything_llm_url  # URL without trailing /
 
-USE_CRON=true
-CHECK_FILES_CRON=*/1 * * * *
 
-# Image description settings (optional)
+USE_CRON=true                        # Enable scheduled checking
+CHECK_FILES_CRON=*/1 * * * *         # Check every minute
+
+# Image description (optional)
 OLLAMA_URL=http://localhost:11434/api/generate
 IMAGE_DESCRIPTION_ACTIVATE=true
 IMAGE_DESCRIPTION_MODEL=gemma3:4b
 IMAGE_DESCRIPTION_LANGUAGE=english
 
-SORT_FILES=true
-DELETE_UNUSED_FOLDERS=false
+SORT_FILES=true                      # Auto-organize files
+DELETE_UNUSED_FOLDERS=false          # Clean up empty folders
 ```
 
+🔑 **API Key**: AnythingLLM Settings → Tools → Developer API → Generate New API Key  
 
-🔑 You can find the developer API Key here: **AnythingLLM Settings -> Tools -> Developer API -> Generate New API Key**
+### Folder Setup 📁
 
-🌍 You can get the URL from the Developer API Window -> Click on **"Read the API documentation"** -> Example URL: `http://192.168.80.35:3001/api/docs/` -> Use `http://192.168.80.35:3001` without a trailing `/`
-
-### Volume Configuration 📁
-
-Specify the directory to monitor in `docker-compose.yml`:
+In `docker-compose.yml`, set your monitored directory:
 
 ```yaml
 volumes:
-  - C:\YOUR_PATH:/app/AnythingLLM
+  - C:\YOUR_FOLDER:/app/AnythingLLM
 ```
+Make sure the path to your folder is before the `:/app/AnythingLLM`
+📂 Each subfolder creates a matching workspace in AnythingLLM:
+- `C:\MyFolder\Work` → **Work** workspace
+- `C:\MyFolder\Personal` → **Personal** workspace
 
-⚠️ **Important**: You must modify the volume path in `docker-compose.yml` from the default `C:\AnythingTest:/app/AnythingLLM` to your own local directory that should be monitored.
-
-📂 The program will scan every folder within the specified path.
-
-Example:
-- `C:\MyAnythingLLM_folder\Homework`
-- `C:\MyAnythingLLM_folder\Contracts`
-- `C:\MyAnythingLLM_folder\ActualHomework`
-
-Will create the Workspaces:
-- **Homework**
-- **Contracts**
-- **ActualHomework**
-
-🗑️ These workspaces also get deleted when the local folders are removed.
+Workspaces are automatically created and deleted to match your folder structure.
 
 ## Image Description Feature 🖼️
 
-This feature automatically creates text descriptions for image files when enabled:
+Generates searchable text descriptions for images:
 
-1. **How it works:**
-   - Detects image files in monitored folders (.jpg, .jpeg, .png, .gif, .bmp, .tiff, .webp)
-   - Sends images to Ollama for AI-based description
-   - Creates a `.image_description` file alongside each image
-   - Only the text description gets uploaded to AnythingLLM, making embeddings more efficient
+- 🔍 Detects images (.jpg, .png, etc.) in monitored folders
+- 🧠 Uses Ollama for AI description
+- 📄 Creates `.image_description` files
+- 📤 Only uploads text descriptions for efficient embedding
 
-2. **Configuration:**
-   - Enable with `IMAGE_DESCRIPTION_ACTIVATE=true`
-   - Configure Ollama URL with `OLLAMA_URL=http://your-ollama-instance:11434/api/generate`
-   - Select model with `IMAGE_DESCRIPTION_MODEL=gemma3:4b` (or another compatible model)
-   - Choose language with `IMAGE_DESCRIPTION_LANGUAGE=english` (or other language)
+**Setup**: Enable with `IMAGE_DESCRIPTION_ACTIVATE=true` and configure Ollama settings in `.env`
 
-## File Sorting Feature 🗂️ 📁 🔄
+## File Sorting Feature 🗂️
 
-⚠️ **BETA Feature**: The file sorting functionality is currently in beta and not completely tested yet. Use with caution. 🧪 🔍
+⚠️ **BETA Feature**: Use with caution.
 
-This feature automatically organizes documents into folders based on their workspace associations. This feature is only required if you are uploading and embeding through the AnythingLLM Frontend, since automatic uploads from this App already manages files. 🌟 ✨
+Automatically organizes documents into folders based on workspace associations:
 
-1. **How it works:** 🛠️
-   - 🔍 Analyzes which workspaces each document is embedded in
-   - 📁 Creates folders with workspace names if they don't already exist
-   - 🔄 Moves documents into folders that match their workspace names
-   - 1️⃣ For documents in exactly one workspace: moves them to a folder named after that workspace
-   - 🔀 For documents in multiple workspaces: special handling applied (feature in development)
-   - 📌 Documents not in any workspace remain in their original location
+- 🔍 Moves files to folders matching their workspace names
+- 📁 Creates workspace folders as needed
+- 🔄 Handles single and multi-workspace documents
 
-2. **Configuration:** ⚙️
-   - ✅ Enable with `SORT_FILES=true` in your `.env` file
-   - 🧹 Optionally enable `DELETE_UNUSED_FOLDERS=true` to clean up empty folders
-   
-3. **Use cases:** 💼
-   - 🗄️ Automatically organize documents by their logical workspace groupings
-   - 🧩 Maintain cleaner file structure that mirrors your AnythingLLM workspaces
-   - 📚 Simplify document management for large knowledge bases
+**Configuration:**
+- Enable with `SORT_FILES=true` in `.env`
+- Optional: `DELETE_UNUSED_FOLDERS=true` to clean up empty folders
 
-4. **Limitations (Beta):** ⚠️
-   - 🔀 Documents in multiple workspaces may not be sorted optimally yet
-   - 🐢 Large document collections may take longer to process
-   - 🧩 Some edge cases may not be handled properly
+**Note:** Only needed if uploading through AnythingLLM Frontend, as this app already manages files automatically.
 
 ## Installation and Setup 🚀
 
@@ -141,7 +101,7 @@ git clone https://github.com/MrMarans/AnythingLLM_File-Manager.git
 ```
 
 2. **Configure your environment**:
-   - 🛠️ Create a `.env` file with required environment variables (check out the `.env.example` file)
+   - 🛠️ Copy the `.env.example` file, create an `.env` file and set your settings. 
    - 🔑 Set your API key, AnythingLLM URL, watched folder path
    - 📂 Configure docker-compose.yml with the correct volume mapping for your monitored directory
 
@@ -185,8 +145,6 @@ docker-compose up -d --build
 You can modify the `CHECK_FILES_CRON` environment variable to adjust the checking frequency:
 
 - `*/1 * * * *` - 🔄 Every minute (default)
-- `*/5 * * * *` - ⏳ Every 5 minutes
-- `0 * * * *` - 🕒 Every hour
 - `0 */2 * * *` - ⏲️ Every 2 hours
 - `0 9-17 * * 1-5` - ⏰ Every hour between 9 AM and 5 PM, Monday to Friday
 
@@ -198,9 +156,11 @@ To deactivate CRON Scheduler, set `USE_CRON=false` in the `.env` file
 You can let the files manually update with a post request to the **ip:port/update_files/update/** endpoint.
 For most people it will be **http://localhost:8000/update_files/update/**
 Also available are: 
-- update_files/sort/  for sorting files in folders 
-- update_files/clean/  for deleting empty folders in AnythingLLMN 
-- update_files/scan/  to just check how many file updates there are
+- **update_files/sort/**  for sorting files in folders 
+- **update_files/clean/**  for deleting empty folders in AnythingLLMN 
+- **update_files/scan/**  to just check how many file updates there are
+- **update_files/create_image_descriptions/** 
+
 
 ## Web UI Interface 🖥️ 🖱️
 
