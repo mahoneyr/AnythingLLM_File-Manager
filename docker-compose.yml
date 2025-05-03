@@ -9,7 +9,8 @@ services:
       - storage_volume:/app/storage
       - database_volume:/app/database
       - C:\AnythingTest:/app/AnythingLLM
-
+    env_file:
+      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=main.settings
       - PYTHONPATH=/app
@@ -19,6 +20,8 @@ services:
       - PORT=8000
     ports:
       - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     tty: true
     stdin_open: true
     restart: always

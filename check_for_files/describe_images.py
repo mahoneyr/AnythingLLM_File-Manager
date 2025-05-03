@@ -10,7 +10,7 @@ class ImageDescriber:
         
         self.ollama_url = os.environ.get("OLLAMA_URL")
         if not self.ollama_url:
-            self.ollama_url = "http://localhost:11434/api/generate"
+            self.ollama_url = "http://host.docker.internal:11434/api/generate"
             
         self.image_description_model = os.environ.get("IMAGE_DESCRIPTION_MODEL")
         if not self.image_description_model:
@@ -30,6 +30,7 @@ class ImageDescriber:
         Returns:
             tuple: (file_name, success_boolean) - file_name is path to description file or error message
         """
+
         try:
             # Convert Windows path to raw string and normalize
             image_path = os.path.abspath(image_path).replace('\\', '/')
@@ -59,24 +60,47 @@ class ImageDescriber:
                 "images": [image_base64],
                 "stream": False
             }
-            response = requests.post(self.ollama_url, json=payload, verify=False).json()["response"]
-
-            # Get the filename without extension
-            file_name = os.path.splitext(image_path)[0]
+            if self.verbose: print(f"Request URL: {self.ollama_url}")
             
-            with open(f"{file_name}.image_description", "w+", encoding='utf-8') as file:
-                json.dump({
-                    'description': response,
-                    'timestamp': datetime.now().isoformat()
-                }, file, ensure_ascii=False, indent=4)
-                if self.verbose: print("saved to json file")
-            file_name = os.path.abspath(f"{file_name}.image_description")
-            if self.verbose: print(f"Response received from Ollama and saved to file: {file_name}")
-            
-            return file_name, True
+            try:
+                response = requests.post(self.ollama_url, json=payload, verify=False)
+                if self.verbose: print(f"Response status code: {response.status_code}")
+                if self.verbose: print(f"Response content: {response.text[:200]}...")  # Print first 200 chars of response
+                
+                if response.status_code != 200:
+                    raise ValueError(f"Ollama API returned status code {response.status_code}: {response.text}")
+                    
+                response_data = response.json()
+                if "response" not in response_data:
+                    raise ValueError(f"Unexpected response format from Ollama: {response_data}")
+                    
+                description = response_data["response"]
+                
+                # Get the filename without extension
+                file_name = os.path.splitext(image_path)[0]
+                
+                with open(f"{file_name}.image_description", "w+", encoding='utf-8') as file:
+                    json.dump({
+                        'description': description,
+                        'timestamp': datetime.now().isoformat()
+                    }, file, ensure_ascii=False, indent=4)
+                    if self.verbose: print("saved to json file")
+                file_name = os.path.abspath(f"{file_name}.image_description")
+                if self.verbose: print(f"Response received from Ollama and saved to file: {file_name}")
+                
+                return file_name, True
+                
+            except json.JSONDecodeError as e:
+                error_message = f"Failed to parse Ollama response as JSON: {str(e)}"
+                print(error_message)
+                return error_message, False
+            except Exception as e:
+                error_message = f"Error processing image: {str(e)} {self.ollama_url}"
+                print(error_message)
+                return error_message, False
             
         except Exception as e:
-            error_message = f"Error processing image: {str(e)}"
+            error_message = f"Error processing image: {str(e)} {self.ollama_url}"
             print(error_message)
             return error_message, False
 

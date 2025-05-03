@@ -475,31 +475,34 @@ class AnythingLLM_API_Client:
             print(f"Error deleting unused folders: {str(e)}")
 
     def _create_workspace_if_not_exists(self, workspace_name):
-        if self.verbose: print(
-            f" {workspace_name} did not exist as a workspace, so we create one"
-        )
-        new_workspace_json = {
-            "name": f"🔄{workspace_name}",
-            "similarityThreshold": 0.25,
-            "openAiTemp": 0.7,
-            "openAiHistory": 20,
-            "openAiPrompt": "Given the following conversation, relevant context, and a follow up question, reply with an answer to the current question the user is asking. Return only your response to the question given the above information following the users instructions as needed.",
-            "queryRefusalResponse": "There is no relevant information in this workspace to answer your query.",
-            "chatMode": "chat",
-            "topN": 4,
-        }
+        try:
+            if self.verbose: print(
+                f" {workspace_name} did not exist as a workspace, so we create one"
+            )
+            new_workspace_json = {
+                "name": f"🔄{workspace_name}",
+                "similarityThreshold": 0.25,
+                "openAiTemp": 0.7,
+                "openAiHistory": 20,
+                "openAiPrompt": "Given the following conversation, relevant context, and a follow up question, reply with an answer to the current question the user is asking. Return only your response to the question given the above information following the users instructions as needed.",
+                "queryRefusalResponse": "There is no relevant information in this workspace to answer your query.",
+                "chatMode": "chat",
+                "topN": 4,
+            }
 
-        created_workspaces.objects.create(name=workspace_name)
+            created_workspaces.objects.create(name=workspace_name)
 
-        if self.verbose: print(f"Creating new workspace: {workspace_name}")
-        response = requests.post(
-            url=self.main_url + self.new_workspace_url,
-            headers=self.headers_json,
-            json=new_workspace_json,
-            timeout=10,
-            verify=False
-        )
-        if self.verbose: print(f"Workspace {workspace_name} created, response: {response.json()}")
+            if self.verbose: print(f"Creating new workspace: {workspace_name}")
+            response = requests.post(
+                url=self.main_url + self.new_workspace_url,
+                headers=self.headers_json,
+                json=new_workspace_json,
+                timeout=10,
+                verify=False
+            )
+            if self.verbose: print(f"Workspace {workspace_name} created, response: {response.json()}")
+        except Exception as e:
+            print(f"Error creating workspace: {str(e)}")
 
     def _saveFile(self, file_path, main_folder):
         try:
