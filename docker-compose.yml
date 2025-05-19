@@ -9,7 +9,7 @@ services:
       - storage_volume:/app/storage
       - database_volume:/app/database
       - C:\MyFirstFolder:/app/AnythingLLM
-      - C:\MySecondFolder:/app/AnythingLLM2
+      # - C:\MySecondFolder:/app/AnythingLLM2
     env_file:
       - .env
     environment:
