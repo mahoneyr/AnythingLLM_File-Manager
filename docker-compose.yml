@@ -8,7 +8,8 @@ services:
       - static_volume:/app/static
       - storage_volume:/app/storage
       - database_volume:/app/database
-      - C:\AnythingTest:/app/AnythingLLM
+      - C:\MyFirstFolder:/app/AnythingLLM
+      # - C:\MySecondFolder:/app/AnythingLLM2
     env_file:
       - .env
     environment:

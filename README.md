@@ -57,14 +57,28 @@ In `docker-compose.yml`, set your monitored directory:
 
 ```yaml
 volumes:
-  - C:\YOUR_FOLDER:/app/AnythingLLM
+  - C:\MyFolder:/app/AnythingLLM
 ```
+
+You can add as many monitored directories you need. If you want multiple, you can do it like this:
+
+```yaml
+volumes:
+  - C:\YOUR_FOLDER:/app/AnythingLLM
+  - C:\YOUR_SECOND_FOLDER:/app/AnythingLLM_SecondInstance
+  - C:\YOUR_THIRD_FOLDER:/app/AnythingLLM3
+```
+
+The programm checks for all folders which starts with "AnythingLLM" within the /app path. Meaning "AnythingLLM_Second", "AnythingLLMHomeWork" and such all get detected. You can't use the same name multiple times tho.
+
 Make sure the path to your folder is before the `:/app/AnythingLLM`
 📂 Each subfolder creates a matching workspace in AnythingLLM:
 - `C:\MyFolder\Work` → **Work** workspace
 - `C:\MyFolder\Personal` → **Personal** workspace
 
-Workspaces are automatically created and deleted to match your folder structure.
+Workspaces are automatically created and deleted to match your folder structure. 
+
+⚠️ Files within the source folder (in this example the "C:\MyFolder") are skipped. Make sure you create subfolders, else the program can't create workspaces or upload files, as they are not detected.
 
 ## Image Description Feature 🖼️
 
@@ -157,7 +171,7 @@ You can let the files manually update with a post request to the **ip:port/updat
 For most people it will be **http://localhost:8000/update_files/update/**
 Also available are: 
 - **update_files/sort/**  for sorting files in folders 
-- **update_files/clean/**  for deleting empty folders in AnythingLLMN 
+- **update_files/clean/**  for deleting empty folders in AnythingLLM 
 - **update_files/scan/**  to just check how many file updates there are
 - **update_files/create_image_descriptions/** 
 
@@ -226,14 +240,12 @@ For issues, questions, or contributions:
 
 ## Upcoming Changes 🚀
 
-- 🛠️ Additional API endpoints for granular control
-- 🖼️ Endpoint for on-demand image description
 - 📝 API documentation improvements
 - 👤 Face Recognition Feature for Image Description
 - 🎯 Check if filetype is supported by AnythingLLM
 - 🚀 Much More exciting features!
 
-- Version 1.0 will release with AnythingLLM Desktop Support and granular API endpoints. No releasdate or window yet clear!
+- Version 1.0 will release with AnythingLLM Desktop Support, tested and working on Linux and Windows and granular API endpoints. No releasedate or window yet clear!
 
 ## Security Information 🔒
 

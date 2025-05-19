@@ -20,14 +20,10 @@ class FileScanner:
 
         self.image_describer = ImageDescriber(verbose=self.verbose)
 
-        self.host_folder = os.environ.get("HOST_FOLDER")
-        if not self.host_folder:
-            self.host_folder = "/app/AnythingLLM"
-        else:
-            # Convert Windows path to Unix-style path for Docker
-            self.host_folder = self.host_folder.replace("\\", "/")
-        if self.verbose: print(f"Host folder: {self.host_folder}")
-
+        self.host_folders = [
+            str(f) for f in Path("/app").iterdir()
+            if f.is_dir() and f.name.lower().startswith("anythingllm")
+        ]
 
         self.image_description_activate = os.environ.get("IMAGE_DESCRIPTION_ACTIVATE", "false").lower() == "true"
         if not self.image_description_activate:
@@ -43,10 +39,11 @@ class FileScanner:
             self.image_description_activate = False
 
     def scan_files(self):
-        if self.verbose: print(f"image_description_activate: {self.image_description_activate}")
+        if self.verbose: print(f"image_description_active: {self.image_description_activate}")
         self._check_for_files_still_exist()
         if self.verbose: print(f"checking subfolder")
-        self._check_subfolder( directory = self.host_folder, main_folder = self.host_folder, first_run = True)
+        for host_folder in self.host_folders:
+            self._check_subfolder( directory = host_folder, main_folder = host_folder, first_run = True)
         if self.verbose: print(f"removing duplicates")
         self._remove_duplicates()
         if self.verbose: 
@@ -70,7 +67,8 @@ class FileScanner:
     def create_image_descriptions(self):
         if self.verbose: print(f"image_description_activate: {self.image_description_activate}")
         self.image_description_activate= True
-        self._check_subfolder( directory = self.host_folder, main_folder = self.host_folder, first_run = True)
+        for host_folder in self.host_folders:
+            self._check_subfolder( directory = host_folder, main_folder = host_folder, first_run = True)
         self._remove_duplicates()
 
     def _check_for_files_still_exist(self):
@@ -532,14 +530,13 @@ class AnythingLLM_API_Client:
             print(f"Error saving files sources in DB {str(e)}")
 
 
-
-
 def main():
     verbose = os.environ.get("VERBOSE", "false").lower() == "true"
     if not verbose:
         verbose = False
 
     file_scanner = FileScanner(verbose=verbose)
+    if verbose: print(f"Host folders: {file_scanner.host_folders}")
     files_to_add, files_that_changed, files_got_deleted  = file_scanner.scan_files()
     anythingLLM_api_client = AnythingLLM_API_Client(verbose=verbose)
     anythingLLM_api_client.update(files_to_add=files_to_add, files_that_changed=  files_that_changed, files_got_deleted= files_got_deleted,)
