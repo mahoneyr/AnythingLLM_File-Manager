@@ -57,20 +57,22 @@ In `docker-compose.yml`, set your monitored directory:
 
 ```yaml
 volumes:
-  - C:\YOUR_FOLDER:/app/AnythingLLM
+  - C:\MyFolder:/app/AnythingLLM
 ```
-Make sure the path to your folder is before the `:/app/AnythingLLM`
-📂 Each subfolder creates a matching workspace in AnythingLLM:
-- `C:\MyFolder\Work` → **Work** workspace
-- `C:\MyFolder\Personal` → **Personal** workspace
 
 You can add as many monitored folders you need. If you want multiple, you can do it like this:
 ```yaml
 volumes:
   - C:\YOUR_FOLDER:/app/AnythingLLM
   - C:\YOUR_SECOND_FOLDER:/app/AnythingLLM_SecondInstance
+  - C:\YOUR_THIRD_FOLDER:/app/AnythingLLM3
 ```
 The programm checks for all folders which starts with "AnythingLLM" within the /app path. Meaning "AnythingLLM_Second", "AnythingLLMMyHoMewORK" and such all get detected. You can't use the same name multiple times tho.
+
+Make sure the path to your folder is before the `:/app/AnythingLLM`
+📂 Each subfolder creates a matching workspace in AnythingLLM:
+- `C:\MyFolder\Work` → **Work** workspace
+- `C:\MyFolder\Personal` → **Personal** workspace
 
 Workspaces are automatically created and deleted to match your folder structure. 
 ⚠️ Files within the source folder (in this example the "C:\MyFolder") are skipped. Make sure you create subfolders, else the program can't create workspaces or upload files, as they are not detected.
