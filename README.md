@@ -69,7 +69,7 @@ volumes:
   - C:\YOUR_THIRD_FOLDER:/app/AnythingLLM3
 ```
 
-The programm checks for all folders which starts with "AnythingLLM" within the /app path. Meaning "AnythingLLM_Second", "AnythingLLMHomeWork" and such all get detected. You can't use the same name multiple times tho.
+The programm checks for all folders which starts with "AnythingLLM" within the /app path. Meaning "AnythingLLM_Second", "AnythingLLMHomeWork" and such all get detected, but just putting a number behind it is probably the best solution.
 
 Make sure the path to your folder is before the `:/app/AnythingLLM`
 📂 Each subfolder creates a matching workspace in AnythingLLM:
