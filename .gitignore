@@ -40,5 +40,7 @@ media/
 .semgrep/
 .semgrep_logs/
 
-docker-compose.yml
+
+docker-compose_privat.yml
+
 db.sqlite3
