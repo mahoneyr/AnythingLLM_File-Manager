@@ -472,13 +472,27 @@ class AnythingLLM_API_Client:
         except Exception as e:
             print(f"Error deleting unused folders: {str(e)}")
 
-    def _create_workspace_if_not_exists(self, workspace_name):
+    def _create_workspace_if_not_exists(self, workspace_name: str):
+        # Check env var first
+        if os.getenv("CREATE_WORKSPACES", "false").lower() != "true":
+            if self.verbose:
+                print(f"CREATE_WORKSPACES not set, skipping creation of {workspace_name}.")
+            return
+
+    # Check if workspace already exists in DB
+    if created_workspaces.objects.filter(name=workspace_name).exists():
+        if self.verbose:
+            print(f"Workspace {workspace_name} already exists, skipping creation.")
+        return
+        
         try:
-            if self.verbose: print(
-                f" {workspace_name} did not exist as a workspace, so we create one"
+            if self.verbose:
+                print(f"{workspace_name} does not exist as a workspace - creating"
             )
+
+            # Build new workspace
             new_workspace_json = {
-                "name": f"🔄{workspace_name}",
+                "name": f"{workspace_name}",
                 "similarityThreshold": 0.25,
                 "openAiTemp": 0.7,
                 "openAiHistory": 20,
@@ -488,8 +502,10 @@ class AnythingLLM_API_Client:
                 "topN": 4,
             }
 
+            # Add workspace to local database
             created_workspaces.objects.create(name=workspace_name)
 
+            # Call API
             if self.verbose: print(f"Creating new workspace: {workspace_name}")
             response = requests.post(
                 url=self.main_url + self.new_workspace_url,
@@ -499,8 +515,13 @@ class AnythingLLM_API_Client:
                 verify=False
             )
             if self.verbose: print(f"Workspace {workspace_name} created, response: {response.json()}")
-        except Exception as e:
-            print(f"Error creating workspace: {str(e)}")
+
+    except IntegrityError:
+        print(f"Workspace {workspace_name} already exists in DB (race condition).")
+    except requests.exceptions.RequestException as e:
+        print(f"Network error creating workspace {workspace_name}: {e}")
+    except Exception as e:
+        print(f"Unexpected error creating workspace {workspace_name}: {e}")
 
     def _saveFile(self, file_path, main_folder):
         try:
