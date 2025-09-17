@@ -479,16 +479,13 @@ class AnythingLLM_API_Client:
                 print(f"CREATE_WORKSPACES not set, skipping creation of {workspace_name}.")
             return
 
-    # Check if workspace already exists in DB
-    if created_workspaces.objects.filter(name=workspace_name).exists():
-        if self.verbose:
-            print(f"Workspace {workspace_name} already exists, skipping creation.")
-        return
+        # Check if workspace already exists in DB
+        if created_workspaces.objects.filter(name=workspace_name).exists():
+            if self.verbose: print(f"Workspace {workspace_name} already exists, skipping creation.")
+            return
         
         try:
-            if self.verbose:
-                print(f"{workspace_name} does not exist as a workspace - creating"
-            )
+            if self.verbose: print(f"{workspace_name} does not exist as a workspace - creating")
 
             # Build new workspace
             new_workspace_json = {
@@ -514,14 +511,15 @@ class AnythingLLM_API_Client:
                 timeout=10,
                 verify=False
             )
+            
             if self.verbose: print(f"Workspace {workspace_name} created, response: {response.json()}")
 
-    except IntegrityError:
-        print(f"Workspace {workspace_name} already exists in DB (race condition).")
-    except requests.exceptions.RequestException as e:
-        print(f"Network error creating workspace {workspace_name}: {e}")
-    except Exception as e:
-        print(f"Unexpected error creating workspace {workspace_name}: {e}")
+        except IntegrityError:
+            print(f"Workspace {workspace_name} already exists in DB (race condition).")
+        except requests.exceptions.RequestException as e:
+            print(f"Network error creating workspace {workspace_name}: {e}")
+        except Exception as e:
+            print(f"Unexpected error creating workspace {workspace_name}: {e}")
 
     def _saveFile(self, file_path, main_folder):
         try:
