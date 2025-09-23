@@ -379,7 +379,7 @@ class AnythingLLM_API_Client:
             create_workspaces = os.getenv("CREATE_WORKSPACES", "false").lower() in ("1", "true", "yes")
             if not create_workspaces:
                 if self.verbose:
-                print(f"Skipping workspace creation for '{workspace_name}' because CREATE_WORKSPACES is disabled.")
+                    print(f"Skipping workspace creation for '{workspace_name}' because CREATE_WORKSPACES is disabled.")
 
             checked_workspaces = []
             workspaces_to_update = {}
