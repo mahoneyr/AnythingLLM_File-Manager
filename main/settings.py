@@ -53,12 +53,13 @@ REST_FRAMEWORK = {
     ],
 }
 
+q_timeout = int(os.getenv("UPLOAD_TIMEOUT", "3600"))
 
 Q_CLUSTER = {
     "orm": "default",  # should use django's ORM and database as a broker.
     "workers": 4,
-    "timeout": 3600,
-    "retry": 3660,
+    "timeout": q_timeout,
+    "retry": q_timeout + 60,
     "queue_limit": 50,
     "bulk": 10,
 }
