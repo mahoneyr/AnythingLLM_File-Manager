@@ -376,7 +376,7 @@ class AnythingLLM_API_Client:
         # -----------------------------
         try:
             # Check if CREATE_WORKSPACES is enabled and print log message if not
-            if not (os.getenv("CREATE_WORKSPACES", "false").lower() in ("1", "true", "yes")):
+            if not (os.getenv("CREATE_WORKSPACES", "true").lower() in ("1", "true", "yes")):
                 if self.verbose:
                     print(f"Skipping workspace creation because CREATE_WORKSPACES is not enabled.")
 
@@ -479,7 +479,7 @@ class AnythingLLM_API_Client:
 
     def _create_workspace_if_not_exists(self, workspace_name):
         # Check if CREATE_WORKSPACES is enabled and skip creation if not
-        if not (os.getenv("CREATE_WORKSPACES", "false").lower() in ("1", "true", "yes")):
+        if not (os.getenv("CREATE_WORKSPACES", "true").lower() in ("1", "true", "yes")):
             return
 
         try:
