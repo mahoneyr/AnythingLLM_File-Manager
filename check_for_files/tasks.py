@@ -277,7 +277,7 @@ class AnythingLLM_API_Client:
                         self.main_url + self.post_document_add_url + folder_name,
                         headers=self.headers_files,
                         files=files,
-                        timeout=3600,  # Increased timeout for file uploads
+                        timeout=int(os.getenv("UPLOAD_TIMEOUT", "120")),  # Use env variable for timeout
                         verify=False
                     )
                     if response.status_code != 200:
