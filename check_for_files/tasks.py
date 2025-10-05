@@ -277,7 +277,7 @@ class AnythingLLM_API_Client:
                         self.main_url + self.post_document_add_url + folder_name,
                         headers=self.headers_files,
                         files=files,
-                        timeout=30,  # Increased timeout for file uploads
+                        timeout=1200,  # Increased timeout for file uploads
                         verify=False
                     )
                     if response.status_code != 200:
@@ -311,7 +311,7 @@ class AnythingLLM_API_Client:
         try:
             # Get all documents from AnythingLLM
             response = requests.get(
-                self.main_url + self.get_documents_url, headers=self.headers_json, timeout=10, verify=False
+                self.main_url + self.get_documents_url, headers=self.headers_json, timeout=120, verify=False
             )
             response.raise_for_status()
             local_files = response.json()["localFiles"]
@@ -332,7 +332,7 @@ class AnythingLLM_API_Client:
                     self.main_url + self.delete_documents_url,
                     headers=self.headers_json,
                     json={"names": paths_to_delete},
-                    timeout=10,
+                    timeout=120,
                     verify=False
                 )
                 response.raise_for_status()
@@ -385,7 +385,7 @@ class AnythingLLM_API_Client:
                         + self.get_workspace_url
                         + workspace_name.lower().replace(" ", "-"),
                         headers=self.headers_json,
-                        timeout=10,
+                        timeout=120,
                         verify=False
                     )
                     if len(response.json()["workspace"]) == 0:
@@ -413,7 +413,7 @@ class AnythingLLM_API_Client:
                     + self.update_embeddings_url,
                     headers=self.headers_json,
                     json=json_to_send,
-                    timeout=10,
+                    timeout=120,
                     verify=False
                 )
         except Exception as e:
@@ -432,7 +432,7 @@ class AnythingLLM_API_Client:
                     + self.get_workspace_url
                     + str.lower(workspace.name).replace(" ", "-"),
                     headers=self.headers_json,
-                    timeout=10,
+                    timeout=120,
                     verify=False
                 )
                 workspace_data = response.json()["workspace"]
@@ -444,7 +444,7 @@ class AnythingLLM_API_Client:
                             + self.get_workspace_url
                             + str.lower(workspace.name).replace(" ", "-"),
                             headers=self.headers_json,
-                            timeout=10,
+                            timeout=120,
                             verify=False
                         )
                         workspace.delete()
@@ -456,7 +456,7 @@ class AnythingLLM_API_Client:
         # This function deletes empty folders from AnythingLLM
         # -----------------------------
         try:
-            response = requests.get(self.main_url + self.get_documents_url, headers=self.headers_json, timeout=10, verify=False)
+            response = requests.get(self.main_url + self.get_documents_url, headers=self.headers_json, timeout=120, verify=False)
             folders = response.json()["localFiles"]["items"]
             for folder in folders:
                 
@@ -467,7 +467,7 @@ class AnythingLLM_API_Client:
                     json_to_send = {
                         "name": folder["name"]
                     }
-                    requests.delete(self.main_url + self.delete_folder_url, headers=self.headers_json, json=json_to_send, timeout=10, verify=False)
+                    requests.delete(self.main_url + self.delete_folder_url, headers=self.headers_json, json=json_to_send, timeout=120, verify=False)
                     if self.verbose: print(f"Deleted folder: {folder['name']}")
         except Exception as e:
             print(f"Error deleting unused folders: {str(e)}")
@@ -508,7 +508,7 @@ class AnythingLLM_API_Client:
                 url=self.main_url + self.new_workspace_url,
                 headers=self.headers_json,
                 json=new_workspace_json,
-                timeout=10,
+                timeout=120,
                 verify=False
             )
             

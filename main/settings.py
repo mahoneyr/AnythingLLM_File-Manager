@@ -57,8 +57,8 @@ REST_FRAMEWORK = {
 Q_CLUSTER = {
     "orm": "default",  # should use django's ORM and database as a broker.
     "workers": 4,
-    "timeout": 30,
-    "retry": 60,
+    "timeout": 1200,
+    "retry": 1260,
     "queue_limit": 50,
     "bulk": 10,
 }
